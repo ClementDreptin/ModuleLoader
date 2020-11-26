@@ -2,7 +2,9 @@
 ModuleLoader is a command line tool to load/unload modules from an RGH/Jtag/Devkit Xbox 360 without having to reboot.
 
 ## Requirements
-You must have the Xbox 360 SDK (XDK) installed. If you have another version than 2.0.21256.0 you will need to replace the dll files from the `lib` folder with the ones from your SDK (located at `\path\to\XDK\bin\win32\`).
+- You must have the Xbox 360 SDK (XDK) installed. If you have another version than 2.0.21256.0 you will need to replace the dll files from the `lib` folder with the ones from your SDK (located at `\path\to\XDK\bin\win32\`).  
+
+- You must have Xbox 360 Neighborhood set up (your console must be added and set as default).
 
 ## Documentation
 - `-h`: Show help.
