@@ -1,4 +1,6 @@
-﻿namespace ModuleLoader
+﻿using System;
+
+namespace ModuleLoader
 {
 	class Program
 	{
@@ -77,7 +79,14 @@
 		{
 			if (ModuleLoader.Connect())
 			{
-				moduleCallBack(moduleName);
+				try
+				{
+					moduleCallBack(moduleName);
+				}
+				catch (Exception exception)
+				{
+					ModuleLoader.Print("error", "An error occured. Full message: " + exception.Message);
+				}
 
 				ModuleLoader.Disconnect();
 			}
