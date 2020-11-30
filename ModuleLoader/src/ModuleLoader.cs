@@ -58,8 +58,11 @@ namespace ModuleLoader
 
 		public bool Disconnect()
 		{
-			if (xbConsole.DebugTarget.IsDebuggerConnected(out debuggerName, out userName))
-				xbConsole.DebugTarget.DisconnectAsDebugger();
+			try
+			{
+				if (xbConsole.DebugTarget.IsDebuggerConnected(out debuggerName, out userName))
+					xbConsole.DebugTarget.DisconnectAsDebugger();
+			} catch (Exception) { }
 
 			if (xboxConnection != 0)
 			{
