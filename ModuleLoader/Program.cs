@@ -17,7 +17,7 @@ namespace ModuleLoader
 
 			if (args.Length > 2)
 			{
-				ModuleLoader.Print("error", "Maximum number of arguments exceeded. ModuleLoader -h to see the usage.");
+				XboxUtils.ErrorMessage("Maximum number of arguments exceeded. ModuleLoader -h to see the usage.");
 				return;
 			}
 
@@ -31,30 +31,38 @@ namespace ModuleLoader
 					case "-h":
 						ModuleLoader.ShowHelp();
 						break;
+					case "-s":
+						ModuleAction(Show, null);
+						break;
 					case "-l":
 						if (secondArg != null)
 							ModuleAction(Load, secondArg);
 						else
-							ModuleLoader.Print("error", "You need to specify an absolute module path. ModuleLoader -h to see the usage.");
+							XboxUtils.ErrorMessage("You need to specify an absolute module path. ModuleLoader -h to see the usage.");
 						break;
 					case "-u":
 						if (secondArg != null)
 							ModuleAction(Unload, secondArg);
 						else
-							ModuleLoader.Print("error", "You need to specify an absolute module path. ModuleLoader -h to see the usage.");
+							XboxUtils.ErrorMessage("You need to specify an absolute module path. ModuleLoader -h to see the usage.");
 						break;
 					default:
-						ModuleLoader.Print("error", firstArg + " is not a valid argument. ModuleLoader -h to see the usage.");
+						XboxUtils.ErrorMessage(firstArg + " is not a valid argument. ModuleLoader -h to see the usage.");
 						break;
 				}
 			}
 			else
 			{
 				if (secondArg != null)
-					ModuleLoader.Print("error", "You can not specify argument after the module path. ModuleLoader -h to see the usage.");
+					XboxUtils.ErrorMessage("You can not specify argument after the module path. ModuleLoader -h to see the usage.");
 				else
 					ModuleAction(UnloadThenLoad, firstArg);
 			}
+		}
+
+		static void Show(string moduleName)
+		{
+			ModuleLoader.ShowModuleNames();
 		}
 
 		static void Load(string moduleName)
@@ -85,7 +93,7 @@ namespace ModuleLoader
 				}
 				catch (Exception exception)
 				{
-					ModuleLoader.Print("error", "An error occured. Full message: " + exception.Message);
+					XboxUtils.ErrorMessage("An error occured. Full message: " + exception.Message);
 				}
 
 				ModuleLoader.Disconnect();
