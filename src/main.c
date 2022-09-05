@@ -1,11 +1,30 @@
+#include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+
+#include "Log.h"
 
 void ShowHelp(void);
 
-int main()
+int main(int argc, char **argv)
 {
-    // Just display the help message all the time for now
-    ShowHelp();
+    if (argc == 1)
+    {
+        ShowHelp();
+        return EXIT_SUCCESS;
+    }
+
+    if (argc > 3)
+    {
+        LogError("Maximum number of arguments exceeded. ModuleLoader -h to see the usage.");
+        return EXIT_FAILURE;
+    }
+
+    if (!strcmp(argv[1], "-h"))
+    {
+        ShowHelp();
+        return EXIT_SUCCESS;
+    }
 
     return 0;
 }
