@@ -25,39 +25,61 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    // Case of using ModuleLoader by just providing 1 argument
-    if (nNumberOfArguments == 1)
+    // Case of using ModuleLoader by providing a module path
+    if (argv[1][0] != '-')
     {
-        // Case of using ModuleLoader by providing a module path
-        if (argv[1][0] != '-')
-        {
-            LogSuccess("Loading %s...", argv[1]);
-            return EXIT_SUCCESS;
-        }
-
-        // Case of using ModuleLoader with a flag
-        if (!strcmp(argv[1], "-h"))
-        {
-            ShowUsage();
-            return EXIT_SUCCESS;
-        }
-
-        LogError("%s is not a valid argument. ModuleLoader -h to see the usage.", argv[1]);
-
-        return EXIT_FAILURE;
+        LogInfo("Loading %s...", argv[1]);
+        return EXIT_SUCCESS;
     }
 
-    // Case of using ModuleLoader by providing 2 arguments
-    if (nNumberOfArguments == 2)
+    // Cases of using ModuleLoader with a flag
+
+    // Usage
+    if (!strcmp(argv[1], "-h"))
     {
-        if (argv[1][0] != '-')
+        ShowUsage();
+        return EXIT_SUCCESS;
+    }
+
+    // Module list
+    if (!strcmp(argv[1], "-s"))
+    {
+        puts("Module1\nModule2\nModule3");
+        return EXIT_SUCCESS;
+    }
+
+    // Loading
+    if (!strcmp(argv[1], "-l"))
+    {
+        if (nNumberOfArguments < 2)
         {
-            LogError("You cannot specify arguments after the module path. ModuleLoader -h to see the usage.");
+            LogError("You need to specify an absolute module path. ModuleLoader -h to see the usage.");
             return EXIT_FAILURE;
         }
+
+        LogInfo("Loading %s...", argv[2]);
+
+        return EXIT_SUCCESS;
     }
 
-    return EXIT_SUCCESS;
+    // Unloading
+    if (!strcmp(argv[1], "-u"))
+    {
+        if (nNumberOfArguments < 2)
+        {
+            LogError("You need to specify an absolute module path. ModuleLoader -h to see the usage.");
+            return EXIT_FAILURE;
+        }
+
+        LogInfo("Unloading %s...", argv[2]);
+
+        return EXIT_SUCCESS;
+    }
+
+    // Invalid flag
+    LogError("%s is not a valid argument. ModuleLoader -h to see the usage.", argv[1]);
+
+    return EXIT_FAILURE;
 }
 
 void ShowUsage(void)
