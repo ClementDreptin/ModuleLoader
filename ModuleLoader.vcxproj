@@ -105,9 +105,11 @@
   <ItemGroup>
     <ClCompile Include="src\Log.c" />
     <ClCompile Include="src\main.c" />
+    <ClCompile Include="src\Modules.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Log.h" />
+    <ClInclude Include="src\Modules.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

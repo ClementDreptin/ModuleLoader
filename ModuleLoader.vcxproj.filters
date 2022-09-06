@@ -21,9 +21,15 @@
     <ClCompile Include="src\Log.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Modules.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Log.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Modules.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

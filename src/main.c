@@ -3,8 +3,25 @@
 #include <string.h>
 
 #include "Log.h"
+#include "Modules.h"
 
-void ShowUsage(void);
+static void ShowUsage(void)
+{
+    const char *szUsage =
+        "Usage:\n"
+        "    -h:               Show usage.\n"
+        "\n"
+        "    -s:               Show loaded modules (NOT YET IMPLEMENTED).\n"
+        "\n"
+        "    <module_path>:    If <module_path> is already loaded, it will be unloaded then\n"
+        "                      loaded back, otherwise it will just be loaded (NOT YET IMPLEMENTED).\n"
+        "\n"
+        "    -l <module_path>: Load the module located at <module_path> (absolute path) (NOT YET IMPLEMENTED).\n"
+        "\n"
+        "    -u <module_path>: Unload the module located at <module_path> (absolute path) (NOT YET IMPLEMENTED).";
+
+    puts(szUsage);
+}
 
 int main(int argc, char **argv)
 {
@@ -43,10 +60,7 @@ int main(int argc, char **argv)
 
     // Module list
     if (!strcmp(argv[1], "-s"))
-    {
-        puts("Module1\nModule2\nModule3");
-        return EXIT_SUCCESS;
-    }
+        return ShowLoadedModuleNames();
 
     // Loading
     if (!strcmp(argv[1], "-l"))
@@ -80,22 +94,4 @@ int main(int argc, char **argv)
     LogError("%s is not a valid argument. ModuleLoader -h to see the usage.", argv[1]);
 
     return EXIT_FAILURE;
-}
-
-void ShowUsage(void)
-{
-    const char *szUsage =
-        "Usage:\n"
-        "    -h:               Show usage.\n"
-        "\n"
-        "    -s:               Show loaded modules (NOT YET IMPLEMENTED).\n"
-        "\n"
-        "    <module_path>:    If <module_path> is already loaded, it will be unloaded then\n"
-        "                      loaded back, otherwise it will just be loaded (NOT YET IMPLEMENTED).\n"
-        "\n"
-        "    -l <module_path>: Load the module located at <module_path> (absolute path) (NOT YET IMPLEMENTED).\n"
-        "\n"
-        "    -u <module_path>: Unload the module located at <module_path> (absolute path) (NOT YET IMPLEMENTED).";
-
-    puts(szUsage);
 }
