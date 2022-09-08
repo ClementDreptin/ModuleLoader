@@ -11,7 +11,7 @@
 
 #include "Log.h"
 
-static void LogXBDMError(HRESULT hr)
+static void LogXbdmError(HRESULT hr)
 {
     char szErrorMsg[200] = { 0 };
 
@@ -33,7 +33,7 @@ HRESULT ShowLoadedModuleNames(void)
     // Error handling
     if (hr != XBDM_ENDOFLIST)
     {
-        LogXBDMError(hr);
+        LogXbdmError(hr);
         DmCloseLoadedModules(pWalkModule);
 
         return hr;
