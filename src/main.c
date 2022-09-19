@@ -71,7 +71,7 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
         }
 
-        LogInfo("Loading %s...", argv[2]);
+        TestXNotify();
 
         return EXIT_SUCCESS;
     }
