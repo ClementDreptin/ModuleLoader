@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
 // XBDM uses bit field types other than int which triggers a warning at warning level 4
 // so we just disable it for XBDM
@@ -21,6 +22,50 @@ static void LogXbdmError(HRESULT hr)
     DmTranslateError(hr, szErrorMsg, sizeof(szErrorMsg));
 
     LogError(szErrorMsg);
+}
+
+static HRESULT FileExists(const char *filePath, BOOL *pFileExists)
+{
+    HRESULT hr = S_OK;
+    DM_FILE_ATTRIBUTES fileAttributes = { 0 };
+
+    hr = DmGetFileAttributes(filePath, &fileAttributes);
+
+    if (hr == XBDM_NOERR)
+    {
+        *pFileExists = TRUE;
+        return S_OK;
+    }
+
+    *pFileExists = FALSE;
+
+    return hr;
+}
+
+static HRESULT IsModLoaded(const char *modulePath, BOOL *pIsLoaded)
+{
+    HRESULT hr = S_OK;
+    PDM_WALK_MODULES pWalkModule = NULL;
+    DMN_MODLOAD loadedModule = { 0 };
+
+    // Go through the loaded modules and check if modulePath is in them
+    while ((hr = DmWalkLoadedModules(&pWalkModule, &loadedModule)) == XBDM_NOERR)
+        if (strstr(modulePath, loadedModule.Name) != NULL)
+            *pIsLoaded = TRUE;
+
+    // Error handling
+    if (hr != XBDM_ENDOFLIST)
+    {
+        LogXbdmError(hr);
+        DmCloseLoadedModules(pWalkModule);
+
+        return hr;
+    }
+
+    // Free the memory allocated by DmWalkLoadedModules
+    DmCloseLoadedModules(pWalkModule);
+
+    return S_OK;
 }
 
 HRESULT ShowLoadedModuleNames(void)
@@ -204,6 +249,40 @@ HRESULT TestXNotify(void)
     XBDM_ERR_CHECK(hr);
 
     DmCloseConnection(conn);
+
+    return hr;
+}
+
+HRESULT Load(const char *modulePath)
+{
+    HRESULT hr = S_OK;
+    BOOL moduleExists = FALSE;
+    BOOL isModuleLoaded = FALSE;
+
+    hr = FileExists(modulePath, &moduleExists);
+    if (FAILED(hr))
+    {
+        LogXbdmError(hr);
+        return E_FAIL;
+    }
+
+    if (moduleExists == FALSE)
+    {
+        LogError("%s does not exist.", modulePath);
+        return XBDM_NOSUCHFILE;
+    }
+
+    hr = IsModLoaded(modulePath, &isModuleLoaded);
+    if (FAILED(hr))
+        return E_FAIL;
+
+    if (isModuleLoaded == TRUE)
+    {
+        LogError("%s is already loaded.", modulePath);
+        return E_FAIL;
+    }
+
+    LogInfo("Loading %s", modulePath);
 
     return hr;
 }

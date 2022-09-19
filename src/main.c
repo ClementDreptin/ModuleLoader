@@ -11,7 +11,7 @@ static void ShowUsage(void)
         "Usage:\n"
         "    -h:               Show usage.\n"
         "\n"
-        "    -s:               Show loaded modules (NOT YET IMPLEMENTED).\n"
+        "    -s:               Show loaded modules.\n"
         "\n"
         "    <module_path>:    If <module_path> is already loaded, it will be unloaded then\n"
         "                      loaded back, otherwise it will just be loaded (NOT YET IMPLEMENTED).\n"
@@ -71,9 +71,7 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
         }
 
-        TestXNotify();
-
-        return EXIT_SUCCESS;
+        return Load(argv[2]);
     }
 
     // Unloading
