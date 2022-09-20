@@ -253,11 +253,135 @@ HRESULT TestXNotify(void)
     return hr;
 }
 
+// Call to GetModuleHandleA
+//
+// - module: "xam.xex"
+// - ordinal: 1102
+// - number of args: 1
+// - 1st arg: moduleName
+//
+// 00 00 00 00 00 00 00 00   00 00 00 00 00 00 00 00   <-- 16 empty bytes
+// 00 00 00 00 00 00 00 00   00 00 00 00 00 00 00 00   <-- 16 empty bytes
+// 00 00 00 00 00 00 00 01   00 00 00 00 00 00 00 00   <-- num of args (1) | 8 empty bytes
+// 00 00 00 00 3A 15 CC 58   00 00 00 00 00 00 04 4E   <-- 1st address     | ordinal (1102)
+// 00 00 00 00 3A 15 CC 60   78 61 6D 2E 78 65 78 00   <-- 2nd address     | module name ("xam.xex")
+// 68 64 64 3A 5C 50 6C 75   67 69 6E 73 5C 48 61 79   <-- string argument ("hdd:\Plugins\Hayzen.xex")
+// 7A 65 6E 2E 78 65 78 00
+
+static HRESULT GetHandle(const char *modulePath, uint64_t *pHandle)
+{
+    // TODO: make the buffer size dynamic depending on the size of moduleName
+
+    HRESULT hr = S_OK;
+    char response[RESPONSE_SIZE] = { 0 };
+    DWORD responseSize = RESPONSE_SIZE;
+    const char *command = "rpc system version=4 buf_size=104 processor=5 thread=\r\n";
+    const char *moduleToGetTheFunctionFrom = "xam.xex";
+    size_t moduleToGetTheFunctionFromSize = 0;
+    size_t moduleNameSize = 0;
+    uint32_t ordinal = 1102;
+    uint64_t bufferAddress = 0;
+    uint64_t firstBufferAddress = 0;
+    uint64_t secondBufferAddress = 0;
+    uint32_t numberOfParams = 1;
+    byte buffer[104] = { 0 };
+    byte *pBuffer = buffer;
+    size_t bufferSize = 104;
+    PDM_CONNECTION conn = NULL;
+
+    hr = DmOpenConnection(&conn);
+    XBDM_ERR_CHECK(hr);
+
+    hr = DmSendCommand(conn, command, response, &responseSize);
+    XBDM_ERR_CHECK(hr);
+
+    if (sscanf_s(response, "204- buf_addr=%x\r\n", &bufferAddress) != 1)
+    {
+        LogError("Unexpected response received: %s", response);
+        return E_FAIL;
+    }
+
+    // Reset the response buffer for later
+    ZeroMemory(response, RESPONSE_SIZE);
+    responseSize = RESPONSE_SIZE;
+
+    // Let at least 0x48 bytes between firstBufferAddress and the buffer address returned when the thread was created,
+    // I don't know why...
+    firstBufferAddress = bufferAddress + 0x48;
+
+    // The buffer needs to have 32 zeros at first, so we just move the pointer 32 bytes forwards because the entire buffer
+    // is already filled with zeros
+    pBuffer += 32;
+
+    // Write the number of parameters passed on the next 8 bytes
+    WriteUInt64(&pBuffer, numberOfParams);
+
+    // Leave 8 zeros
+    pBuffer += sizeof(uint64_t);
+
+    // Write firstBufferAddress on the next 8 bytes
+    WriteUInt64(&pBuffer, firstBufferAddress);
+
+    // Write the ordinal on the next 8 bytes
+    WriteUInt64(&pBuffer, ordinal);
+
+    // The amount of bytes between secondBufferAddress and firstBufferAddress needs to be a multiple of 8 and enough
+    // to contain the module name, which is xam.xex
+    secondBufferAddress = firstBufferAddress + 8;
+
+    // Write secondBufferAddress
+    WriteUInt64(&pBuffer, secondBufferAddress);
+
+    // Copy the module name (1 byte per character)
+    moduleToGetTheFunctionFromSize = strnlen_s(moduleToGetTheFunctionFrom, MAX_PATH);
+    memcpy(pBuffer, moduleToGetTheFunctionFrom, moduleToGetTheFunctionFromSize);
+    pBuffer += moduleToGetTheFunctionFromSize;
+
+    // "xax.xex" is only 7 characters so we need to add an extra 0 to round up to 8
+    *pBuffer = 0;
+    pBuffer++;
+
+    // The string argument (1 byte per character)
+    moduleNameSize = strnlen_s(modulePath, MAX_PATH);
+    memcpy(pBuffer, modulePath, moduleNameSize);
+
+    // Send the buffer
+    hr = DmSendBinary(conn, buffer, bufferSize);
+    XBDM_ERR_CHECK(hr);
+
+    hr = DmReceiveStatusResponse(conn, response, &responseSize);
+    XBDM_ERR_CHECK(hr);
+
+    if (response[0] != '2')
+    {
+        LogError("Unexpected response received: %s", response);
+        return E_FAIL;
+    }
+
+    ZeroMemory(response, RESPONSE_SIZE);
+    responseSize = RESPONSE_SIZE;
+
+    hr = DmReceiveBinary(conn, response, 16, NULL);
+    XBDM_ERR_CHECK(hr);
+
+    ZeroMemory(buffer, bufferSize);
+
+    hr = DmReceiveBinary(conn, buffer, bufferSize, NULL);
+    XBDM_ERR_CHECK(hr);
+
+    *pHandle = _byteswap_uint64(*(uint64_t *)(buffer + sizeof(uint64_t)));
+
+    DmCloseConnection(conn);
+
+    return hr;
+}
+
 HRESULT Load(const char *modulePath)
 {
     HRESULT hr = S_OK;
     BOOL moduleExists = FALSE;
     BOOL isModuleLoaded = FALSE;
+    uint64_t handle = 0ULL;
 
     hr = FileExists(modulePath, &moduleExists);
     if (FAILED(hr))
@@ -276,13 +400,15 @@ HRESULT Load(const char *modulePath)
     if (FAILED(hr))
         return E_FAIL;
 
-    if (isModuleLoaded == TRUE)
+    if (isModuleLoaded != TRUE)
     {
         LogError("%s is already loaded.", modulePath);
         return E_FAIL;
     }
 
-    LogInfo("Loading %s", modulePath);
+    GetHandle(modulePath, &handle);
+
+    LogInfo("handle: %x", handle);
 
     return hr;
 }
