@@ -10,8 +10,8 @@ static void Print(FILE *pOutputStream, const char *szPrefix, const char *szForma
 {
     char szFinalFormat[MAX_LOG_BUFFER_SIZE] = { 0 };
 
-    // Build the final form of the format ([<prefix>]: <format>)
-    _snprintf_s(szFinalFormat, MAX_LOG_BUFFER_SIZE, _TRUNCATE, "[%s]: %s", szPrefix, szFormat);
+    // Build the final form of the format ([<prefix>]: <format>\n)
+    _snprintf_s(szFinalFormat, MAX_LOG_BUFFER_SIZE, _TRUNCATE, "[%s]: %s\n", szPrefix, szFormat);
 
     // Format the full message and write it to pOutputStream
     vfprintf_s(pOutputStream, szFinalFormat, pArgList);
