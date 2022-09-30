@@ -6,52 +6,52 @@
 
 #define MAX_LOG_BUFFER_SIZE 2048
 
-static void Print(FILE *pOutputStream, const char *szPrefix, const char *szFormat, const va_list pArgList)
+static void Print(FILE *pOutputStream, const char *prefix, const char *format, const va_list args)
 {
-    char szFinalFormat[MAX_LOG_BUFFER_SIZE] = { 0 };
+    char finalFormat[MAX_LOG_BUFFER_SIZE] = { 0 };
 
     // Build the final form of the format ([<prefix>]: <format>\n)
-    _snprintf_s(szFinalFormat, MAX_LOG_BUFFER_SIZE, _TRUNCATE, "[%s]: %s\n", szPrefix, szFormat);
+    _snprintf_s(finalFormat, MAX_LOG_BUFFER_SIZE, _TRUNCATE, "[%s]: %s\n", prefix, format);
 
     // Format the full message and write it to pOutputStream
-    vfprintf_s(pOutputStream, szFinalFormat, pArgList);
+    vfprintf_s(pOutputStream, finalFormat, args);
 }
 
-void LogSuccess(const char *szMessage, ...)
+void LogSuccess(const char *message, ...)
 {
     // Get the variadic arguments
-    va_list pArgList = NULL;
-    va_start(pArgList, szMessage);
+    va_list args = NULL;
+    va_start(args, message);
 
     // Print
-    Print(stdout, "Success", szMessage, pArgList);
+    Print(stdout, "Success", message, args);
 
     // Free the variadic arguments
-    va_end(pArgList);
+    va_end(args);
 }
 
-void LogError(const char *szMessage, ...)
+void LogError(const char *message, ...)
 {
     // Get the variadic arguments
-    va_list pArgList = NULL;
-    va_start(pArgList, szMessage);
+    va_list args = NULL;
+    va_start(args, message);
 
     // Print
-    Print(stderr, "Error", szMessage, pArgList);
+    Print(stderr, "Error", message, args);
 
     // Free the variadic arguments
-    va_end(pArgList);
+    va_end(args);
 }
 
-void LogInfo(const char *szMessage, ...)
+void LogInfo(const char *message, ...)
 {
     // Get the variadic arguments
-    va_list pArgList = NULL;
-    va_start(pArgList, szMessage);
+    va_list args = NULL;
+    va_start(args, message);
 
     // Print
-    Print(stdout, "Info", szMessage, pArgList);
+    Print(stdout, "Info", message, args);
 
     // Free the variadic arguments
-    va_end(pArgList);
+    va_end(args);
 }

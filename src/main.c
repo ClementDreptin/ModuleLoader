@@ -7,7 +7,7 @@
 
 static void ShowUsage(void)
 {
-    const char *szUsage =
+    const char *usage =
         "Usage:\n"
         "    -h:               Show usage.\n"
         "\n"
@@ -20,23 +20,23 @@ static void ShowUsage(void)
         "\n"
         "    -u <module_path>: Unload the module located at <module_path> (absolute path) (NOT YET IMPLEMENTED).";
 
-    puts(szUsage);
+    puts(usage);
 }
 
 int main(int argc, char **argv)
 {
     // The first char * of argv is the name of the program so the number of arguments is argc - 1
-    size_t nNumberOfArguments = argc - 1;
+    size_t numberOfArguments = argc - 1;
 
     // Case of using ModuleLoader without providing any arguments
-    if (nNumberOfArguments == 0)
+    if (numberOfArguments == 0)
     {
         ShowUsage();
         return EXIT_SUCCESS;
     }
 
     // Check to make sure not more than 2 arguments are passed
-    if (nNumberOfArguments > 2)
+    if (numberOfArguments > 2)
     {
         LogError("Maximum number of arguments exceeded. ModuleLoader -h to see the usage.");
         return EXIT_FAILURE;
@@ -65,7 +65,7 @@ int main(int argc, char **argv)
     // Loading
     if (!strcmp(argv[1], "-l"))
     {
-        if (nNumberOfArguments < 2)
+        if (numberOfArguments < 2)
         {
             LogError("You need to specify an absolute module path. ModuleLoader -h to see the usage.");
             return EXIT_FAILURE;
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
     // Unloading
     if (!strcmp(argv[1], "-u"))
     {
-        if (nNumberOfArguments < 2)
+        if (numberOfArguments < 2)
         {
             LogError("You need to specify an absolute module path. ModuleLoader -h to see the usage.");
             return EXIT_FAILURE;

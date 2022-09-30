@@ -17,11 +17,11 @@
 
 static void LogXbdmError(HRESULT hr)
 {
-    char szErrorMsg[200] = { 0 };
+    char errorMsg[200] = { 0 };
 
-    DmTranslateError(hr, szErrorMsg, sizeof(szErrorMsg));
+    DmTranslateError(hr, errorMsg, sizeof(errorMsg));
 
-    LogError(szErrorMsg);
+    LogError(errorMsg);
 }
 
 static HRESULT FileExists(const char *filePath, BOOL *pFileExists)
@@ -71,24 +71,24 @@ static HRESULT IsModLoaded(const char *modulePath, BOOL *pIsLoaded)
 HRESULT ShowLoadedModuleNames(void)
 {
     HRESULT hr = S_OK;
-    PDM_WALK_MODULES pWalkModule = NULL;
-    DMN_MODLOAD LoadedModule = { 0 };
+    PDM_WALK_MODULES pModuleWalker = NULL;
+    DMN_MODLOAD loadedModule = { 0 };
 
     // Go through the loaded modules and print their names
-    while ((hr = DmWalkLoadedModules(&pWalkModule, &LoadedModule)) == XBDM_NOERR)
-        puts(LoadedModule.Name);
+    while ((hr = DmWalkLoadedModules(&pModuleWalker, &loadedModule)) == XBDM_NOERR)
+        puts(loadedModule.Name);
 
     // Error handling
     if (hr != XBDM_ENDOFLIST)
     {
         LogXbdmError(hr);
-        DmCloseLoadedModules(pWalkModule);
+        DmCloseLoadedModules(pModuleWalker);
 
         return hr;
     }
 
     // Free the memory allocated by DmWalkLoadedModules
-    DmCloseLoadedModules(pWalkModule);
+    DmCloseLoadedModules(pModuleWalker);
 
     return S_OK;
 }
