@@ -45,11 +45,11 @@ static HRESULT FileExists(const char *filePath, BOOL *pFileExists)
 static HRESULT IsModLoaded(const char *modulePath, BOOL *pIsLoaded)
 {
     HRESULT hr = S_OK;
-    PDM_WALK_MODULES pWalkModule = NULL;
+    PDM_WALK_MODULES pModuleWalker = NULL;
     DMN_MODLOAD loadedModule = { 0 };
 
     // Go through the loaded modules and check if modulePath is in them
-    while ((hr = DmWalkLoadedModules(&pWalkModule, &loadedModule)) == XBDM_NOERR)
+    while ((hr = DmWalkLoadedModules(&pModuleWalker, &loadedModule)) == XBDM_NOERR)
         if (strstr(modulePath, loadedModule.Name) != NULL)
             *pIsLoaded = TRUE;
 
@@ -57,13 +57,13 @@ static HRESULT IsModLoaded(const char *modulePath, BOOL *pIsLoaded)
     if (hr != XBDM_ENDOFLIST)
     {
         LogXbdmError(hr);
-        DmCloseLoadedModules(pWalkModule);
+        DmCloseLoadedModules(pModuleWalker);
 
         return hr;
     }
 
     // Free the memory allocated by DmWalkLoadedModules
-    DmCloseLoadedModules(pWalkModule);
+    DmCloseLoadedModules(pModuleWalker);
 
     return S_OK;
 }
@@ -258,7 +258,7 @@ HRESULT TestXNotify(void)
 // - module: "xam.xex"
 // - ordinal: 1102
 // - number of args: 1
-// - 1st arg: moduleName
+// - 1st arg: modulePath
 //
 // 00 00 00 00 00 00 00 00   00 00 00 00 00 00 00 00   <-- 16 empty bytes
 // 00 00 00 00 00 00 00 00   00 00 00 00 00 00 00 00   <-- 16 empty bytes
@@ -270,24 +270,28 @@ HRESULT TestXNotify(void)
 
 static HRESULT GetHandle(const char *modulePath, uint64_t *pHandle)
 {
-    // TODO: make the buffer size dynamic depending on the size of moduleName
-
     HRESULT hr = S_OK;
-    char response[RESPONSE_SIZE] = { 0 };
+    char response[RESPONSE_SIZE] = "204- buf_addr=12345678\r\n";
     DWORD responseSize = RESPONSE_SIZE;
-    const char *command = "rpc system version=4 buf_size=104 processor=5 thread=\r\n";
+    char command[60] = { 0 };
+    const char *commandFormat = "rpc system version=4 buf_size=%d processor=5 thread=\r\n";
     const char *moduleToGetTheFunctionFrom = "xam.xex";
     size_t moduleToGetTheFunctionFromSize = 0;
-    size_t moduleNameSize = 0;
+    size_t modulePathSize = 0;
     uint32_t ordinal = 1102;
     uint64_t bufferAddress = 0;
     uint64_t firstBufferAddress = 0;
     uint64_t secondBufferAddress = 0;
     uint32_t numberOfParams = 1;
-    byte buffer[104] = { 0 };
-    byte *pBuffer = buffer;
-    size_t bufferSize = 104;
+    byte *buffer = NULL;
+    byte *pBuffer = NULL;
+    size_t bufferSize = 80;
     PDM_CONNECTION conn = NULL;
+
+    modulePathSize = strnlen_s(modulePath, MAX_PATH);
+    bufferSize += modulePathSize + 1;
+
+    _snprintf_s(command, sizeof(command), _TRUNCATE, commandFormat, bufferSize);
 
     hr = DmOpenConnection(&conn);
     XBDM_ERR_CHECK(hr);
@@ -304,6 +308,10 @@ static HRESULT GetHandle(const char *modulePath, uint64_t *pHandle)
     // Reset the response buffer for later
     ZeroMemory(response, RESPONSE_SIZE);
     responseSize = RESPONSE_SIZE;
+
+    buffer = malloc(bufferSize);
+    ZeroMemory(buffer, bufferSize);
+    pBuffer = buffer;
 
     // Let at least 0x48 bytes between firstBufferAddress and the buffer address returned when the thread was created,
     // I don't know why...
@@ -342,8 +350,7 @@ static HRESULT GetHandle(const char *modulePath, uint64_t *pHandle)
     pBuffer++;
 
     // The string argument (1 byte per character)
-    moduleNameSize = strnlen_s(modulePath, MAX_PATH);
-    memcpy(pBuffer, modulePath, moduleNameSize);
+    memcpy(pBuffer, modulePath, modulePathSize);
 
     // Send the buffer
     hr = DmSendBinary(conn, buffer, bufferSize);
@@ -370,6 +377,8 @@ static HRESULT GetHandle(const char *modulePath, uint64_t *pHandle)
     XBDM_ERR_CHECK(hr);
 
     *pHandle = _byteswap_uint64(*(uint64_t *)(buffer + sizeof(uint64_t)));
+
+    free(buffer);
 
     DmCloseConnection(conn);
 
