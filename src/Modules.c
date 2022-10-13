@@ -271,7 +271,7 @@ HRESULT TestXNotify(void)
 static HRESULT GetHandle(const char *modulePath, uint64_t *pHandle)
 {
     HRESULT hr = S_OK;
-    char response[RESPONSE_SIZE] = "204- buf_addr=12345678\r\n";
+    char response[RESPONSE_SIZE] = { 0 };
     DWORD responseSize = RESPONSE_SIZE;
     char command[60] = { 0 };
     const char *commandFormat = "rpc system version=4 buf_size=%d processor=5 thread=\r\n";
