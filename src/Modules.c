@@ -93,6 +93,23 @@ HRESULT ShowLoadedModuleNames(void)
     return S_OK;
 }
 
+static void PrintBuffer(void *pBuffer, size_t bufferSize)
+{
+    size_t i = 0;
+
+    for (i = 0; i < bufferSize; i++)
+    {
+        printf("%02hhX ", ((byte *)pBuffer)[i]);
+
+        if ((i + 1) % 16 == 0)
+            printf("\n");
+        else if ((i + 1) % 8 == 0)
+            printf("  ");
+    }
+
+    printf("\n");
+}
+
 static void WriteUInt64(byte **ppBuffer, uint64_t data)
 {
     *(uint64_t *)(*ppBuffer) = _byteswap_uint64(data);
@@ -385,12 +402,156 @@ static HRESULT GetHandle(const char *modulePath, uint64_t *pHandle)
     return hr;
 }
 
+// Call to XexLoadImage
+//
+// - module: "xboxkrnl.exe"
+// - ordinal: 409
+// - number of args: 4
+// - 1st arg: modulePath
+// - 2nd arg: 8
+// - 3rd arg: 0
+// - 4th arg: 0
+//
+// 00 00 00 00 00 00 00 00   00 00 00 00 00 00 00 00   <-- 16 empty bytes
+// 00 00 00 00 00 00 00 00   00 00 00 00 00 00 00 00   <-- 16 empty bytes
+// 00 00 00 00 00 00 00 04   00 00 00 00 00 00 00 00   <-- num of args (4) | 8 empty bytes
+// 00 00 00 00 3A 12 D3 B0   00 00 00 00 00 00 01 99   <-- 1st address     | ordinal (409)
+// 00 00 00 00 3A 12 D3 C0   00 00 00 00 00 00 00 08   <-- 2nd address     | 2nd arg (8)
+// 00 00 00 00 00 00 00 00   00 00 00 00 00 00 00 00   <-- 3rd arg (0)     | 4th arg (0)
+// 78 62 6F 78 6B 72 6E 6C   2E 65 78 65 00 00 00 00   <-- module name ("xboxkrnl.exe")
+// 68 64 64 3A 5C 50 6C 75   67 69 6E 73 5C 48 61 79   <-- string argument ("hdd:\Plugins\Hayzen.xex")
+// 7A 65 6E 2E 78 65 78 00
+
+static HRESULT XexLoadImage(const char *modulePath)
+{
+    HRESULT hr = S_OK;
+    char response[RESPONSE_SIZE] = { 0 };
+    DWORD responseSize = RESPONSE_SIZE;
+    char command[60] = { 0 };
+    const char commandFormat[] = "rpc system version=4 buf_size=%d processor=5 thread=\r\n";
+    const char moduleToGetTheFunctionFrom[] = "xboxkrnl.exe";
+    size_t modulePathSize = 0;
+    uint32_t ordinal = 409;
+    uint64_t bufferAddress = 0;
+    uint64_t firstBufferAddress = 0;
+    uint64_t secondBufferAddress = 0;
+    uint32_t numberOfParams = 4;
+    byte *buffer = NULL;
+    byte *pBuffer = NULL;
+    size_t bufferSize = 112;
+    PDM_CONNECTION conn = NULL;
+
+    modulePathSize = strnlen_s(modulePath, MAX_PATH);
+    bufferSize += modulePathSize + 1;
+
+    _snprintf_s(command, sizeof(command), _TRUNCATE, commandFormat, bufferSize);
+
+    hr = DmOpenConnection(&conn);
+    XBDM_ERR_CHECK(hr);
+
+    hr = DmSendCommand(conn, command, response, &responseSize);
+    XBDM_ERR_CHECK(hr);
+
+    if (sscanf_s(response, "204- buf_addr=%x\r\n", &bufferAddress) != 1)
+    {
+        LogError("Unexpected response received: %s", response);
+        return E_FAIL;
+    }
+
+    // Reset the response buffer for later
+    ZeroMemory(response, RESPONSE_SIZE);
+    responseSize = RESPONSE_SIZE;
+
+    buffer = malloc(bufferSize);
+    ZeroMemory(buffer, bufferSize);
+    pBuffer = buffer;
+
+    // Let at least 0x48 bytes between firstBufferAddress and the buffer address returned when the thread was created,
+    // I don't know why...
+    firstBufferAddress = bufferAddress + 0x48;
+
+    // For each argument that is not a string, we need to shift firstBufferAddress by the amount of space taken by the argument (8 bytes),
+    // in our case, there are 3 arguments that are not strings
+    firstBufferAddress += sizeof(uint64_t) * 3;
+
+    // The buffer needs to have 32 zeros at first, so we just move the pointer 32 bytes forwards because the entire buffer
+    // is already filled with zeros
+    pBuffer += 32;
+
+    // Write the number of parameters passed on the next 8 bytes
+    WriteUInt64(&pBuffer, numberOfParams);
+
+    // Leave 8 zeros
+    pBuffer += sizeof(uint64_t);
+
+    // Write firstBufferAddress on the next 8 bytes
+    WriteUInt64(&pBuffer, firstBufferAddress);
+
+    // Write the ordinal on the next 8 bytes
+    WriteUInt64(&pBuffer, ordinal);
+
+    // The amount of bytes between secondBufferAddress and firstBufferAddress needs to be a multiple of 8 and enough
+    // to contain the module name, which is xboxkrnl.exe
+    secondBufferAddress = firstBufferAddress + 16;
+
+    // Write secondBufferAddress
+    WriteUInt64(&pBuffer, secondBufferAddress);
+
+    // Second argument (8)
+    WriteUInt64(&pBuffer, 8ULL);
+
+    // Third integer argument
+    WriteUInt64(&pBuffer, 0ULL);
+
+    // Fourth integer argument
+    WriteUInt64(&pBuffer, 0ULL);
+
+    // Copy the module name (1 byte per character)
+    memcpy(pBuffer, moduleToGetTheFunctionFrom, sizeof(moduleToGetTheFunctionFrom));
+    pBuffer += sizeof(moduleToGetTheFunctionFrom);
+
+    // "xboxkrnl.exe" is only 13 characters with the null termination character so we need to leave 3 bytes to 0 to round up to 16
+    pBuffer += 3;
+
+    // The string argument (1 byte per character)
+    memcpy(pBuffer, modulePath, modulePathSize);
+
+    // Send the buffer
+    hr = DmSendBinary(conn, buffer, bufferSize);
+    XBDM_ERR_CHECK(hr);
+
+    hr = DmReceiveStatusResponse(conn, response, &responseSize);
+    XBDM_ERR_CHECK(hr);
+
+    if (response[0] != '2')
+    {
+        LogError("Unexpected response received: %s", response);
+        return E_FAIL;
+    }
+
+    ZeroMemory(response, RESPONSE_SIZE);
+    responseSize = RESPONSE_SIZE;
+
+    hr = DmReceiveBinary(conn, response, 16, NULL);
+    XBDM_ERR_CHECK(hr);
+
+    ZeroMemory(buffer, bufferSize);
+
+    hr = DmReceiveBinary(conn, buffer, bufferSize, NULL);
+    XBDM_ERR_CHECK(hr);
+
+    free(buffer);
+
+    DmCloseConnection(conn);
+
+    return hr;
+}
+
 HRESULT Load(const char *modulePath)
 {
     HRESULT hr = S_OK;
     BOOL moduleExists = FALSE;
     BOOL isModuleLoaded = FALSE;
-    uint64_t handle = 0ULL;
 
     hr = FileExists(modulePath, &moduleExists);
     if (FAILED(hr))
@@ -409,15 +570,13 @@ HRESULT Load(const char *modulePath)
     if (FAILED(hr))
         return E_FAIL;
 
-    if (isModuleLoaded != TRUE)
+    if (isModuleLoaded == TRUE)
     {
         LogError("%s is already loaded.", modulePath);
         return E_FAIL;
     }
 
-    GetHandle(modulePath, &handle);
-
-    LogInfo("handle: %x", handle);
+    XexLoadImage(modulePath);
 
     return hr;
 }
