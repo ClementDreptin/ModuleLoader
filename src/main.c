@@ -72,9 +72,7 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
         }
 
-        LogInfo("Unloading %s...", argv[2]);
-
-        return EXIT_SUCCESS;
+        return Unload(argv[2]);
     }
 
     // Invalid flag

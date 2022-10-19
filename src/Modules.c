@@ -149,7 +149,7 @@ static void WriteWideChar(byte **ppBuffer, wchar_t data)
 // 00 00 00 00 00 00 00 00   78 61 6D 2E 78 65 78 00    <-- last arg (0)    | module name ("xam.xex", 1 byte per character)
 // 00 68 00 65 00 6C 00 6C   00 6F 00 00 00 00 00 00    <-- string argument ("hello", 2 bytes per character)
 
-HRESULT TestXNotify(void)
+static HRESULT TestXNotify(void)
 {
     HRESULT hr = S_OK;
     char response[RESPONSE_SIZE] = { 0 };
@@ -547,6 +547,122 @@ static HRESULT XexLoadImage(const char *modulePath)
     return hr;
 }
 
+// Call to XexUnloadImage
+//
+// - module: "xboxkrnl.exe"
+// - ordinal: 417
+// - number of args: 1
+// - 1st arg: moduleHandle
+//
+// 00 00 00 00 00 00 00 00   00 00 00 00 00 00 00 00   <-- 16 empty bytes
+// 00 00 00 00 00 00 00 00   00 00 00 00 00 00 00 00   <-- 16 empty bytes
+// 00 00 00 00 00 00 00 01   00 00 00 00 00 00 00 00   <-- num of args (1)  | 8 empty bytes
+// 00 00 00 00 3A 17 4C 78   00 00 00 00 00 00 01 A1   <-- 1st address      | ordinal (417)
+// 00 00 00 00 3A 14 FE 08   78 62 6F 78 6B 72 6E 6C   <-- 1st arg (handle) | module name ("xboxkrnl.exe")
+// 2E 65 78 65 00 00 00 00
+
+static HRESULT XexUnloadImage(uint64_t moduleHandle)
+{
+    HRESULT hr = S_OK;
+    char response[RESPONSE_SIZE] = "204- buf_addr=3A174C30\r\n";
+    DWORD responseSize = RESPONSE_SIZE;
+    char command[60] = { 0 };
+    const char commandFormat[] = "rpc system version=4 buf_size=%d processor=5 thread=\r\n";
+    const char moduleToGetTheFunctionFrom[] = "xboxkrnl.exe";
+    uint32_t ordinal = 417;
+    uint64_t bufferAddress = 0;
+    uint64_t firstBufferAddress = 0;
+    uint32_t numberOfParams = 1;
+    byte *buffer = NULL;
+    byte *pBuffer = NULL;
+    size_t bufferSize = 80;
+    PDM_CONNECTION conn = NULL;
+
+    bufferSize += sizeof(moduleHandle);
+
+    _snprintf_s(command, sizeof(command), _TRUNCATE, commandFormat, bufferSize);
+
+    hr = DmOpenConnection(&conn);
+    XBDM_ERR_CHECK(hr);
+    
+    hr = DmSendCommand(conn, command, response, &responseSize);
+    XBDM_ERR_CHECK(hr);
+
+    if (sscanf_s(response, "204- buf_addr=%x\r\n", &bufferAddress) != 1)
+    {
+        LogError("Unexpected response received: %s", response);
+        return E_FAIL;
+    }
+
+    // Reset the response buffer for later
+    ZeroMemory(response, RESPONSE_SIZE);
+    responseSize = RESPONSE_SIZE;
+
+    buffer = malloc(bufferSize);
+    ZeroMemory(buffer, bufferSize);
+    pBuffer = buffer;
+
+    // Let at least 0x48 bytes between firstBufferAddress and the buffer address returned when the thread was created,
+    // I don't know why...
+    firstBufferAddress = bufferAddress + 0x48;
+
+    // The buffer needs to have 32 zeros at first, so we just move the pointer 32 bytes forwards because the entire buffer
+    // is already filled with zeros
+    pBuffer += 32;
+
+    // Write the number of parameters passed on the next 8 bytes
+    WriteUInt64(&pBuffer, numberOfParams);
+
+    // Leave 8 zeros
+    pBuffer += sizeof(uint64_t);
+
+    // Write firstBufferAddress on the next 8 bytes
+    WriteUInt64(&pBuffer, firstBufferAddress);
+
+    // Write the ordinal on the next 8 bytes
+    WriteUInt64(&pBuffer, ordinal);
+
+    // Write moduleHandle
+    WriteUInt64(&pBuffer, moduleHandle);
+
+    // Copy the module name (1 byte per character)
+    memcpy(pBuffer, moduleToGetTheFunctionFrom, sizeof(moduleToGetTheFunctionFrom));
+    pBuffer += sizeof(moduleToGetTheFunctionFrom);
+
+    // "xboxkrnl.exe" is only 13 characters with the null termination character so we need to leave 3 bytes to 0 to round up to 16
+    pBuffer += 3;
+
+    // Send the buffer
+    hr = DmSendBinary(conn, buffer, bufferSize);
+    XBDM_ERR_CHECK(hr);
+    
+    hr = DmReceiveStatusResponse(conn, response, &responseSize);
+    XBDM_ERR_CHECK(hr);
+    
+    if (response[0] != '2')
+    {
+        LogError("Unexpected response received: %s", response);
+        return E_FAIL;
+    }
+    
+    ZeroMemory(response, RESPONSE_SIZE);
+    responseSize = RESPONSE_SIZE;
+    
+    hr = DmReceiveBinary(conn, response, 32, NULL);
+    XBDM_ERR_CHECK(hr);
+    
+    ZeroMemory(buffer, bufferSize);
+    
+    hr = DmReceiveBinary(conn, buffer, bufferSize, NULL);
+    XBDM_ERR_CHECK(hr);
+
+    free(buffer);
+
+    DmCloseConnection(conn);
+
+    return hr;
+}
+
 HRESULT Load(const char *modulePath)
 {
     HRESULT hr = S_OK;
@@ -577,6 +693,67 @@ HRESULT Load(const char *modulePath)
     }
 
     XexLoadImage(modulePath);
+
+    return hr;
+}
+
+HRESULT Unload(const char *modulePath)
+{
+    HRESULT hr = S_OK;
+    BOOL moduleExists = FALSE;
+    BOOL isModuleLoaded = FALSE;
+    uint64_t moduleHandle = 0;
+    uint16_t moduleHandlePatchValue = 1;
+    DWORD bytesWritten = 0;
+
+    hr = FileExists(modulePath, &moduleExists);
+    if (FAILED(hr))
+    {
+        LogXbdmError(hr);
+        return E_FAIL;
+    }
+
+    if (moduleExists == FALSE)
+    {
+        LogError("%s does not exist.", modulePath);
+        return XBDM_NOSUCHFILE;
+    }
+
+    hr = IsModLoaded(modulePath, &isModuleLoaded);
+    if (FAILED(hr))
+        return E_FAIL;
+
+    if (isModuleLoaded == FALSE)
+    {
+        LogError("%s is not loaded.", modulePath);
+        return E_FAIL;
+    }
+
+    hr = GetHandle(modulePath, &moduleHandle);
+    if (FAILED(hr))
+        return E_FAIL;
+
+    if (moduleHandle == 0)
+    {
+        LogError("Handle of %s is invalid", modulePath);
+        return E_FAIL;
+    }
+
+    moduleHandlePatchValue = _byteswap_ushort(moduleHandlePatchValue);
+    hr = DmSetMemory((void *)((uint32_t)moduleHandle + 0x40), sizeof(uint16_t), &moduleHandlePatchValue, &bytesWritten);
+    if (FAILED(hr))
+    {
+        LogXbdmError(hr);
+        return E_FAIL;
+    }
+
+    if (bytesWritten != sizeof(uint16_t))
+    {
+        LogError("Expected to write %d bytes at %x but only wrote %d.", sizeof(uint16_t), (uint32_t)moduleHandle + 0x40);
+        return E_FAIL;
+    }
+
+    XexUnloadImage(moduleHandle);
 
     return hr;
 }

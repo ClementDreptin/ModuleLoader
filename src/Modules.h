@@ -5,8 +5,8 @@
 // Print a list of the loaded modules on the console.
 HRESULT ShowLoadedModuleNames(void);
 
-// Load the module located at module path.
+// Load the module located at modulePath.
 HRESULT Load(const char *modulePath);
 
-// Debug function to try XDRPC communication
-HRESULT TestXNotify(void);
+// Unload the module located at modulePath.
+HRESULT Unload(const char *modulePath);
