@@ -2,6 +2,9 @@
 
 #include <Windows.h>
 
+// Check if the module located at modulePath is loaded on the console.
+HRESULT IsModuleLoaded(const char *modulePath, BOOL *pIsLoaded);
+
 // Print a list of the loaded modules on the console.
 HRESULT ShowLoadedModuleNames(void);
 

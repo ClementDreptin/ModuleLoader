@@ -42,7 +42,7 @@ static HRESULT FileExists(const char *filePath, BOOL *pFileExists)
     return hr;
 }
 
-static HRESULT IsModLoaded(const char *modulePath, BOOL *pIsLoaded)
+HRESULT IsModuleLoaded(const char *modulePath, BOOL *pIsLoaded)
 {
     HRESULT hr = S_OK;
     PDM_WALK_MODULES pModuleWalker = NULL;
@@ -682,7 +682,7 @@ HRESULT Load(const char *modulePath)
         return XBDM_NOSUCHFILE;
     }
 
-    hr = IsModLoaded(modulePath, &isModuleLoaded);
+    hr = IsModuleLoaded(modulePath, &isModuleLoaded);
     if (FAILED(hr))
         return E_FAIL;
 
@@ -692,7 +692,11 @@ HRESULT Load(const char *modulePath)
         return E_FAIL;
     }
 
-    XexLoadImage(modulePath);
+    hr = XexLoadImage(modulePath);
+    if (FAILED(hr))
+        return E_FAIL;
+
+    LogSuccess("%s has been loaded.", modulePath);
 
     return hr;
 }
@@ -719,7 +723,7 @@ HRESULT Unload(const char *modulePath)
         return XBDM_NOSUCHFILE;
     }
 
-    hr = IsModLoaded(modulePath, &isModuleLoaded);
+    hr = IsModuleLoaded(modulePath, &isModuleLoaded);
     if (FAILED(hr))
         return E_FAIL;
 
@@ -753,7 +757,11 @@ HRESULT Unload(const char *modulePath)
         return E_FAIL;
     }
 
-    XexUnloadImage(moduleHandle);
+    hr = XexUnloadImage(moduleHandle);
+    if (FAILED(hr))
+        return E_FAIL;
+
+    LogSuccess("%s has been unloaded.", modulePath);
 
     return hr;
 }

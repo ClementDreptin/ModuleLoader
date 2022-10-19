@@ -13,11 +13,11 @@ void ShowUsage(void)
         "    -s:               Show loaded modules.\n"
         "\n"
         "    <module_path>:    If <module_path> is already loaded, it will be unloaded then\n"
-        "                      loaded back, otherwise it will just be loaded (NOT YET IMPLEMENTED).\n"
+        "                      loaded back, otherwise it will just be loaded.\n"
         "\n"
-        "    -l <module_path>: Load the module located at <module_path> (absolute path) (NOT YET IMPLEMENTED).\n"
+        "    -l <module_path>: Load the module located at <module_path> (absolute path).\n"
         "\n"
-        "    -u <module_path>: Unload the module located at <module_path> (absolute path) (NOT YET IMPLEMENTED).";
+        "    -u <module_path>: Unload the module located at <module_path> (absolute path).";
 
     puts(usage);
 }
