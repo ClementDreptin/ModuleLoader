@@ -105,11 +105,13 @@
     <ClCompile Include="src\main.c" />
     <ClCompile Include="src\Modules.c" />
     <ClCompile Include="src\Utils.c" />
+    <ClCompile Include="src\XDRPC.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Log.h" />
     <ClInclude Include="src\Modules.h" />
     <ClInclude Include="src\Utils.h" />
+    <ClInclude Include="src\XDRPC.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
