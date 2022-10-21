@@ -6,7 +6,7 @@
 
 void ShowUsage(void)
 {
-    const char *usage =
+    const char usage[] =
         "Usage:\n"
         "    -h:               Show usage.\n"
         "\n"
@@ -24,6 +24,8 @@ void ShowUsage(void)
 
 HRESULT AddXdkBinDirToPath(void)
 {
+    errno_t err = 0;
+
     char *originalPath = NULL;
     size_t originalPathSize = 0;
     char *xdkDir = NULL;
@@ -31,12 +33,10 @@ HRESULT AddXdkBinDirToPath(void)
     char *newPath = NULL;
     size_t newPathSize = 0;
     char newPathFormat[] = "%s\\bin\\win32;%s";
-    size_t newPathFormatSize = 0;
-    errno_t err = 0;
 
     // Get the value of %PATH%
     err = _dupenv_s(&originalPath, &originalPathSize, "PATH");
-    if (err)
+    if (err != 0)
     {
         LogError("Could not get the value of %PATH%.");
         return E_FAIL;
@@ -44,15 +44,14 @@ HRESULT AddXdkBinDirToPath(void)
 
     // Get the value of %XEDK%
     err = _dupenv_s(&xdkDir, &xdkDirSize, "XEDK");
-    if (err)
+    if (err != 0)
     {
         LogError("Could not get the value of %XEDK%. Make sure the Xbox 360 Software Development Kit is properly installed.");
         return E_FAIL;
     }
 
     // Calculate the size of the new value of %PATH%
-    newPathFormatSize = sizeof(newPathFormat);
-    newPathSize = originalPathSize + xdkDirSize + newPathFormatSize;
+    newPathSize = originalPathSize + xdkDirSize + sizeof(newPathFormat);
     newPath = malloc(newPathSize);
 
     // Create the new value of %PATH% from the format
@@ -60,7 +59,7 @@ HRESULT AddXdkBinDirToPath(void)
 
     // Overwrite the value of %PATH%
     err = _putenv_s("PATH", newPath);
-    if (err)
+    if (err != 0)
     {
         LogError("Could not change the value of %PATH%.");
         return E_FAIL;

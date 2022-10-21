@@ -75,6 +75,7 @@ static void PrintBuffer(void *pBuffer, size_t bufferSize)
 HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, size_t numberOfArgs, uint64_t *pReturnValue)
 {
     HRESULT hr = S_OK;
+
     size_t i = 0;
     BOOL hasStringArgs = FALSE;
 
@@ -114,7 +115,7 @@ HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, 
     // It seems like a second buffer address needs to be in the buffer only when string arguments are passed,
     // I'm not really sure about this assumption...
     if (hasStringArgs == TRUE)
-        bufferSize += sizeof(uint64_t);
+        bufferSize += sizeof(secondBufferAddress);
 
     // Increase the size of the buffer to allow all arguments to fit
     for (i = 0; i < numberOfArgs; i++)
@@ -258,7 +259,7 @@ HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, 
             return E_FAIL;
         }
 
-        *pReturnValue = _byteswap_uint64(*(uint64_t *)(buffer + sizeof(uint64_t)));
+        *pReturnValue = _byteswap_uint64(*(uint64_t *)(buffer + sizeof(*pReturnValue)));
     }
 
     free(buffer);

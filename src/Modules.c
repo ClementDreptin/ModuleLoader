@@ -29,6 +29,7 @@ static void LogXbdmError(HRESULT hr)
 static HRESULT FileExists(const char *filePath, BOOL *pFileExists)
 {
     HRESULT hr = S_OK;
+
     DM_FILE_ATTRIBUTES fileAttributes = { 0 };
 
     hr = DmGetFileAttributes(filePath, &fileAttributes);
@@ -105,6 +106,7 @@ HRESULT IsModuleLoaded(const char *modulePath, BOOL *pIsLoaded)
 HRESULT ShowLoadedModuleNames(void)
 {
     HRESULT hr = S_OK;
+
     PDM_WALK_MODULES pModuleWalker = NULL;
     DMN_MODLOAD loadedModule = { 0 };
 
@@ -394,6 +396,7 @@ static HRESULT XexUnloadImage(uint64_t moduleHandle)
 HRESULT Load(const char *modulePath)
 {
     HRESULT hr = S_OK;
+
     BOOL moduleExists = FALSE;
     BOOL isModuleLoaded = FALSE;
 
@@ -432,11 +435,12 @@ HRESULT Load(const char *modulePath)
 HRESULT Unload(const char *modulePath)
 {
     HRESULT hr = S_OK;
+
     BOOL moduleExists = FALSE;
     BOOL isModuleLoaded = FALSE;
     uint64_t moduleHandle = 0;
     uint16_t moduleHandlePatchValue = 1;
-    DWORD bytesWritten = 0;
+    size_t bytesWritten = 0;
 
     hr = FileExists(modulePath, &moduleExists);
     if (FAILED(hr))
@@ -472,16 +476,16 @@ HRESULT Unload(const char *modulePath)
     }
 
     moduleHandlePatchValue = _byteswap_ushort(moduleHandlePatchValue);
-    hr = DmSetMemory((void *)((uint32_t)moduleHandle + 0x40), sizeof(uint16_t), &moduleHandlePatchValue, &bytesWritten);
+    hr = DmSetMemory((void *)((uint32_t)moduleHandle + 0x40), sizeof(moduleHandlePatchValue), &moduleHandlePatchValue, (DWORD *)&bytesWritten);
     if (FAILED(hr))
     {
         LogXbdmError(hr);
         return E_FAIL;
     }
 
-    if (bytesWritten != sizeof(uint16_t))
+    if (bytesWritten != sizeof(moduleHandlePatchValue))
     {
-        LogError("Expected to write %d bytes at %x but only wrote %d.", sizeof(uint16_t), (uint32_t)moduleHandle + 0x40);
+        LogError("Expected to write %d bytes at %p but only wrote %d.", sizeof(moduleHandlePatchValue), (uint32_t)moduleHandle + 0x40, bytesWritten);
         return E_FAIL;
     }
 

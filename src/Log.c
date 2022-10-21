@@ -4,14 +4,12 @@
 #include <stdio.h>
 #include <string.h>
 
-#define MAX_LOG_BUFFER_SIZE 2048
-
 static void Print(FILE *pOutputStream, const char *prefix, const char *format, const va_list args)
 {
-    char finalFormat[MAX_LOG_BUFFER_SIZE] = { 0 };
+    char finalFormat[2048] = { 0 };
 
     // Build the final form of the format ([<prefix>]: <format>\n)
-    _snprintf_s(finalFormat, MAX_LOG_BUFFER_SIZE, _TRUNCATE, "[%s]: %s\n", prefix, format);
+    _snprintf_s(finalFormat, sizeof(finalFormat), _TRUNCATE, "[%s]: %s\n", prefix, format);
 
     // Format the full message and write it to pOutputStream
     vfprintf_s(pOutputStream, finalFormat, args);
