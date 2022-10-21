@@ -1,32 +1,21 @@
-#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
+#include "Utils.h"
 #include "Log.h"
 #include "Modules.h"
 
-static void ShowUsage(void)
-{
-    const char *usage =
-        "Usage:\n"
-        "    -h:               Show usage.\n"
-        "\n"
-        "    -s:               Show loaded modules (NOT YET IMPLEMENTED).\n"
-        "\n"
-        "    <module_path>:    If <module_path> is already loaded, it will be unloaded then\n"
-        "                      loaded back, otherwise it will just be loaded (NOT YET IMPLEMENTED).\n"
-        "\n"
-        "    -l <module_path>: Load the module located at <module_path> (absolute path) (NOT YET IMPLEMENTED).\n"
-        "\n"
-        "    -u <module_path>: Unload the module located at <module_path> (absolute path) (NOT YET IMPLEMENTED).";
-
-    puts(usage);
-}
-
 int main(int argc, char **argv)
 {
+    HRESULT hr = S_OK;
+
     // The first char * of argv is the name of the program so the number of arguments is argc - 1
     size_t numberOfArguments = argc - 1;
+
+    // Add the XDK bin directory to the path to successfully delay load xbdm.dll
+    hr = AddXdkBinDirToPath();
+    if (FAILED(hr))
+        return EXIT_FAILURE;
 
     // Case of using ModuleLoader without providing any arguments
     if (numberOfArguments == 0)
@@ -42,12 +31,9 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    // Case of using ModuleLoader by providing a module path
+    // Case of using ModuleLoader by just providing a module path
     if (argv[1][0] != '-')
-    {
-        LogInfo("Loading %s...", argv[1]);
-        return EXIT_SUCCESS;
-    }
+        return UnloadThenLoad(argv[1]);
 
     // Cases of using ModuleLoader with a flag
 
@@ -71,9 +57,7 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
         }
 
-        LogInfo("Loading %s...", argv[2]);
-
-        return EXIT_SUCCESS;
+        return Load(argv[2]);
     }
 
     // Unloading
@@ -85,9 +69,7 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
         }
 
-        LogInfo("Unloading %s...", argv[2]);
-
-        return EXIT_SUCCESS;
+        return Unload(argv[2]);
     }
 
     // Invalid flag

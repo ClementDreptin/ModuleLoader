@@ -69,9 +69,8 @@
       <ProgramDatabaseFile>$(IntDir)$(ProjectName)\$(ProjectName).pdb</ProgramDatabaseFile>
       <AdditionalLibraryDirectories>$(XEDK)\lib\win32\vs2010;$(XEDK)\lib\win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>xbdm.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>
-      </DelayLoadDLLs>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <DelayLoadDLLs>xbdm.dll</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -96,20 +95,23 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(XEDK)\lib\win32\vs2010;$(XEDK)\lib\win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>xbdm.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>
-      </DelayLoadDLLs>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <ProgramDatabaseFile>$(IntDir)$(ProjectName)\$(ProjectName).pdb</ProgramDatabaseFile>
+      <DelayLoadDLLs>xbdm.dll</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\Log.c" />
     <ClCompile Include="src\main.c" />
     <ClCompile Include="src\Modules.c" />
+    <ClCompile Include="src\Utils.c" />
+    <ClCompile Include="src\XDRPC.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Log.h" />
     <ClInclude Include="src\Modules.h" />
+    <ClInclude Include="src\Utils.h" />
+    <ClInclude Include="src\XDRPC.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
