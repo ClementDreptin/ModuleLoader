@@ -161,15 +161,13 @@ HRESULT Call(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, size_
     ZeroMemory(buffer, bufferSize);
     pBuffer = buffer;
 
-    // Let at least 0x48 bytes between firstBufferAddress and the buffer address returned when the thread was created,
+    // Let at least 0x40 bytes between firstBufferAddress and the buffer address returned when the thread was created,
     // I don't know why...
-    firstBufferAddress = bufferAddress + 0x48;
+    firstBufferAddress = bufferAddress + 0x40;
 
-    // For each argument that is not a string, we need to shift firstBufferAddress by the amount of space taken by the argument (8 bytes)
-    if (ordinal == 409) // HORRIBLE WORKAROUND, NEEDS TO BE FIXED!!!!
-        for (i = 0; i < numberOfArgs; i++)
-            if (args[i].Type == XdrpcArgType_Integer)
-                firstBufferAddress += sizeof(uint64_t);
+    // For each argument, we need to shift firstBufferAddress by 8 bytes
+    for (i = 0; i < numberOfArgs; i++)
+        firstBufferAddress += sizeof(uint64_t);
 
     // The buffer needs to have 32 zeros at first, so we just move the pointer 32 bytes forwards because the entire buffer
     // is already filled with zeros
