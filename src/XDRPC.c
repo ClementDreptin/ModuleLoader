@@ -4,9 +4,25 @@
 #include <stdlib.h>
 #include <string.h>
 
+// XBDM uses bit field types other than int which triggers a warning at warning level 4
+// so we just disable it for XBDM
+#pragma warning(push)
+#pragma warning(disable : 4214)
+#include <xbdm.h>
+#pragma warning(pop)
+
 #include "Log.h"
 
 #define RESPONSE_SIZE 512
+
+static void LogXbdmError(HRESULT hr)
+{
+    char errorMsg[200] = { 0 };
+
+    DmTranslateError(hr, errorMsg, sizeof(errorMsg));
+
+    LogError(errorMsg);
+}
 
 // Calculate the size of string rounded up to the closest multiple of 8.
 static size_t SizeOfString(const char *string)
@@ -56,7 +72,7 @@ static void PrintBuffer(void *pBuffer, size_t bufferSize)
     printf("\n");
 }
 
-HRESULT Call(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, size_t numberOfArgs)
+HRESULT Call(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, size_t numberOfArgs, uint64_t *pResult)
 {
     HRESULT hr = S_OK;
     size_t i = 0;
@@ -65,7 +81,7 @@ HRESULT Call(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, size_
     char command[60] = { 0 };
     const char commandFormat[] = "rpc system version=4 buf_size=%d processor=5 thread=\r\n";
 
-    char response[RESPONSE_SIZE] = "204- buf_addr=3A174C30\r\n";
+    char response[RESPONSE_SIZE] = { 0 };
     size_t responseSize = RESPONSE_SIZE;
 
     size_t moduleNameSize = 0;
@@ -77,6 +93,8 @@ HRESULT Call(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, size_
     byte *buffer = NULL;
     byte *pBuffer = NULL;
     size_t bufferSize = 0;
+
+    PDM_CONNECTION connection = NULL;
 
     moduleNameSize = SizeOfString(moduleName);
 
@@ -107,6 +125,20 @@ HRESULT Call(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, size_
 
     // Create the command from the format and the buffer size
     _snprintf_s(command, sizeof(command), _TRUNCATE, commandFormat, bufferSize);
+
+    hr = DmOpenConnection(&connection);
+    if (FAILED(hr))
+    {
+        LogXbdmError(hr);
+        return E_FAIL;
+    }
+
+    hr = DmSendCommand(connection, command, response, (DWORD *)&responseSize);
+    if (FAILED(hr))
+    {
+        LogXbdmError(hr);
+        return E_FAIL;
+    }
 
     // Extract the buffer address from the response
     if (sscanf_s(response, "204- buf_addr=%x\r\n", &bufferAddress) != 1)
@@ -165,7 +197,62 @@ HRESULT Call(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, size_
         if (args[i].Type == XdrpcArgType_String)
             WriteString(&pBuffer, args[i].pData);
 
-    PrintBuffer(buffer, bufferSize);
+    // Send the buffer
+    hr = DmSendBinary(connection, buffer, bufferSize);
+    if (FAILED(hr))
+    {
+        LogXbdmError(hr);
+        free(buffer);
+
+        return E_FAIL;
+    }
+
+    hr = DmReceiveStatusResponse(connection, response, (DWORD *)&responseSize);
+    if (FAILED(hr))
+    {
+        LogXbdmError(hr);
+        free(buffer);
+
+        return E_FAIL;
+    }
+
+    if (response[0] != '2')
+    {
+        LogError("Unexpected response received: %s", response);
+        free(buffer);
+
+        return E_FAIL;
+    }
+
+    if (pResult != NULL)
+    {
+        ZeroMemory(response, RESPONSE_SIZE);
+        responseSize = RESPONSE_SIZE;
+
+        hr = DmReceiveBinary(connection, response, sizeof(uint64_t) * 2, NULL);
+        if (FAILED(hr))
+        {
+            LogXbdmError(hr);
+            free(buffer);
+
+            return E_FAIL;
+        }
+
+        ZeroMemory(buffer, bufferSize);
+
+        hr = DmReceiveBinary(connection, buffer, bufferSize, NULL);
+        if (FAILED(hr))
+        {
+            LogXbdmError(hr);
+            free(buffer);
+
+            return E_FAIL;
+        }
+
+        *pResult = _byteswap_uint64(*(uint64_t *)(buffer + sizeof(uint64_t)));
+    }
+
+    DmCloseConnection(connection);
 
     free(buffer);
 
