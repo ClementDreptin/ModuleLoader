@@ -8,7 +8,6 @@
 int main(int argc, char **argv)
 {
     HRESULT hr = S_OK;
-    BOOL isModuleLoaded = FALSE;
 
     // The first char * of argv is the name of the program so the number of arguments is argc - 1
     size_t numberOfArguments = argc - 1;
@@ -34,20 +33,7 @@ int main(int argc, char **argv)
 
     // Case of using ModuleLoader by providing a module path
     if (argv[1][0] != '-')
-    {
-        hr = IsModuleLoaded(argv[1], &isModuleLoaded);
-        if (FAILED(hr))
-            return EXIT_FAILURE;
-
-        if (isModuleLoaded == TRUE)
-        {
-            hr = Unload(argv[1]);
-            if (FAILED(hr))
-                return EXIT_FAILURE;
-        }
-
-        return Load(argv[1]);
-    }
+        return UnloadThenLoad(argv[1]);
 
     // Cases of using ModuleLoader with a flag
 

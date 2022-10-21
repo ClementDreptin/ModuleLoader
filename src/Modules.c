@@ -67,7 +67,7 @@ static HRESULT GetFileNameFromPath(const char *filePath, char *fileName, size_t 
     return S_OK;
 }
 
-HRESULT IsModuleLoaded(const char *modulePath, BOOL *pIsLoaded)
+static HRESULT IsModuleLoaded(const char *modulePath, BOOL *pIsLoaded)
 {
     HRESULT hr = S_OK;
 
@@ -494,6 +494,21 @@ HRESULT Unload(const char *modulePath)
         return E_FAIL;
 
     LogSuccess("%s has been unloaded.", modulePath);
+
+    return hr;
+}
+
+HRESULT UnloadThenLoad(const char *modulePath)
+{
+    HRESULT hr = S_OK;
+
+    hr = Unload(modulePath);
+    if (FAILED(hr))
+        return E_FAIL;
+
+    hr = Load(modulePath);
+    if (FAILED(hr))
+        return E_FAIL;
 
     return hr;
 }
