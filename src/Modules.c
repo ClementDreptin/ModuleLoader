@@ -286,14 +286,14 @@ static HRESULT TestXNotify(void)
 // 68 64 64 3A 5C 50 6C 75   67 69 6E 73 5C 48 61 79   <-- string argument ("hdd:\Plugins\Hayzen.xex")
 // 7A 65 6E 2E 78 65 78 00
 
-static HRESULT GetHandle(const char *modulePath, uint64_t *pHandle)
+static HRESULT XGetModuleHandleA(const char *modulePath, uint64_t *pHandle)
 {
     XdrpcArgInfo args[1] = { { 0 } };
 
     args[0].pData = modulePath;
     args[0].Type = XdrpcArgType_String;
 
-    return Call("xam.xex", 1102, args, 1, pHandle);
+    return XdrpcCall("xam.xex", 1102, args, 1, pHandle);
 }
 
 // Call to XexLoadImage
@@ -331,7 +331,7 @@ static HRESULT XexLoadImage(const char *modulePath)
     args[3].pData = &zero;
     args[3].Type = XdrpcArgType_Integer;
 
-    return Call("xboxkrnl.exe", 409, args, 4, NULL);
+    return XdrpcCall("xboxkrnl.exe", 409, args, 4, NULL);
 }
 
 // Call to XexUnloadImage
@@ -355,7 +355,7 @@ static HRESULT XexUnloadImage(uint64_t moduleHandle)
     args[0].pData = &moduleHandle;
     args[0].Type = XdrpcArgType_Integer;
 
-    return Call("xboxkrnl.exe", 417, args, 1, NULL);
+    return XdrpcCall("xboxkrnl.exe", 417, args, 1, NULL);
 }
 
 HRESULT Load(const char *modulePath)
@@ -428,7 +428,7 @@ HRESULT Unload(const char *modulePath)
         return E_FAIL;
     }
 
-    hr = GetHandle(modulePath, &moduleHandle);
+    hr = XGetModuleHandleA(modulePath, &moduleHandle);
     if (FAILED(hr))
         return E_FAIL;
 

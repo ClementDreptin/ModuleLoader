@@ -16,4 +16,4 @@ typedef struct _XdrpcArgInfo
 } XdrpcArgInfo;
 
 // Call the function at ordinal in moduleName and pass it numberOfArgs arguments coming from args.
-HRESULT Call(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, size_t numberOfArgs, uint64_t *pResult);
+HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, size_t numberOfArgs, uint64_t *pReturnValue);

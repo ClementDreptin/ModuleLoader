@@ -72,7 +72,7 @@ static void PrintBuffer(void *pBuffer, size_t bufferSize)
     printf("\n");
 }
 
-HRESULT Call(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, size_t numberOfArgs, uint64_t *pResult)
+HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, size_t numberOfArgs, uint64_t *pReturnValue)
 {
     HRESULT hr = S_OK;
     size_t i = 0;
@@ -233,7 +233,7 @@ HRESULT Call(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, size_
         return E_FAIL;
     }
 
-    if (pResult != NULL)
+    if (pReturnValue != NULL)
     {
         ZeroMemory(response, RESPONSE_SIZE);
         responseSize = RESPONSE_SIZE;
@@ -258,7 +258,7 @@ HRESULT Call(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, size_
             return E_FAIL;
         }
 
-        *pResult = _byteswap_uint64(*(uint64_t *)(buffer + sizeof(uint64_t)));
+        *pReturnValue = _byteswap_uint64(*(uint64_t *)(buffer + sizeof(uint64_t)));
     }
 
     free(buffer);
