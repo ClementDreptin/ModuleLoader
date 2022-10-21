@@ -4,6 +4,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// XBDM uses bit field types other than int which triggers a warning at warning level 4
+// so we just disable it for XBDM
+#pragma warning(push)
+#pragma warning(disable : 4214)
+#include <xbdm.h>
+#pragma warning(pop)
+
 void ShowUsage(void)
 {
     const char usage[] =
@@ -71,4 +78,13 @@ HRESULT AddXdkBinDirToPath(void)
     free(xdkDir);
 
     return S_OK;
+}
+
+void LogXbdmError(HRESULT hr)
+{
+    char errorMsg[200] = { 0 };
+
+    DmTranslateError(hr, errorMsg, sizeof(errorMsg));
+
+    LogError(errorMsg);
 }

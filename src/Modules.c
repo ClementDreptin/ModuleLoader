@@ -13,16 +13,8 @@
 #pragma warning(pop)
 
 #include "Log.h"
+#include "Utils.h"
 #include "XDRPC.h"
-
-static void LogXbdmError(HRESULT hr)
-{
-    char errorMsg[200] = { 0 };
-
-    DmTranslateError(hr, errorMsg, sizeof(errorMsg));
-
-    LogError(errorMsg);
-}
 
 static HRESULT FileExists(const char *filePath, BOOL *pFileExists)
 {

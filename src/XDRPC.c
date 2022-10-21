@@ -12,17 +12,9 @@
 #pragma warning(pop)
 
 #include "Log.h"
+#include "Utils.h"
 
 #define RESPONSE_SIZE 512
-
-static void LogXbdmError(HRESULT hr)
-{
-    char errorMsg[200] = { 0 };
-
-    DmTranslateError(hr, errorMsg, sizeof(errorMsg));
-
-    LogError(errorMsg);
-}
 
 static size_t SizeOfString(const char *string)
 {
