@@ -12,6 +12,7 @@
 #pragma warning(pop)
 
 #include "Log.h"
+#include "XDRPC.h"
 
 #define RESPONSE_SIZE 512
 
@@ -287,119 +288,12 @@ static HRESULT TestXNotify(void)
 
 static HRESULT GetHandle(const char *modulePath, uint64_t *pHandle)
 {
-    HRESULT hr = S_OK;
-    char response[RESPONSE_SIZE] = { 0 };
-    DWORD responseSize = RESPONSE_SIZE;
-    char command[60] = { 0 };
-    const char *commandFormat = "rpc system version=4 buf_size=%d processor=5 thread=\r\n";
-    const char *moduleToGetTheFunctionFrom = "xam.xex";
-    size_t moduleToGetTheFunctionFromSize = 0;
-    size_t modulePathSize = 0;
-    uint32_t ordinal = 1102;
-    uint64_t bufferAddress = 0;
-    uint64_t firstBufferAddress = 0;
-    uint64_t secondBufferAddress = 0;
-    uint32_t numberOfParams = 1;
-    byte *buffer = NULL;
-    byte *pBuffer = NULL;
-    size_t bufferSize = 80;
-    PDM_CONNECTION conn = NULL;
+    XdrpcArgInfo args[1] = { { 0 } };
 
-    modulePathSize = strnlen_s(modulePath, MAX_PATH);
-    bufferSize += modulePathSize + 1;
+    args[0].pData = modulePath;
+    args[0].Type = XdrpcArgType_String;
 
-    _snprintf_s(command, sizeof(command), _TRUNCATE, commandFormat, bufferSize);
-
-    hr = DmOpenConnection(&conn);
-    XBDM_ERR_CHECK(hr);
-
-    hr = DmSendCommand(conn, command, response, &responseSize);
-    XBDM_ERR_CHECK(hr);
-
-    if (sscanf_s(response, "204- buf_addr=%x\r\n", &bufferAddress) != 1)
-    {
-        LogError("Unexpected response received: %s", response);
-        return E_FAIL;
-    }
-
-    // Reset the response buffer for later
-    ZeroMemory(response, RESPONSE_SIZE);
-    responseSize = RESPONSE_SIZE;
-
-    buffer = malloc(bufferSize);
-    ZeroMemory(buffer, bufferSize);
-    pBuffer = buffer;
-
-    // Let at least 0x48 bytes between firstBufferAddress and the buffer address returned when the thread was created,
-    // I don't know why...
-    firstBufferAddress = bufferAddress + 0x48;
-
-    // The buffer needs to have 32 zeros at first, so we just move the pointer 32 bytes forwards because the entire buffer
-    // is already filled with zeros
-    pBuffer += 32;
-
-    // Write the number of parameters passed on the next 8 bytes
-    WriteUInt64(&pBuffer, numberOfParams);
-
-    // Leave 8 zeros
-    pBuffer += sizeof(uint64_t);
-
-    // Write firstBufferAddress on the next 8 bytes
-    WriteUInt64(&pBuffer, firstBufferAddress);
-
-    // Write the ordinal on the next 8 bytes
-    WriteUInt64(&pBuffer, ordinal);
-
-    // The amount of bytes between secondBufferAddress and firstBufferAddress needs to be a multiple of 8 and enough
-    // to contain the module name, which is xam.xex
-    secondBufferAddress = firstBufferAddress + 8;
-
-    // Write secondBufferAddress
-    WriteUInt64(&pBuffer, secondBufferAddress);
-
-    // Copy the module name (1 byte per character)
-    moduleToGetTheFunctionFromSize = strnlen_s(moduleToGetTheFunctionFrom, MAX_PATH);
-    memcpy(pBuffer, moduleToGetTheFunctionFrom, moduleToGetTheFunctionFromSize);
-    pBuffer += moduleToGetTheFunctionFromSize;
-
-    // "xax.xex" is only 7 characters so we need to add an extra 0 to round up to 8
-    *pBuffer = 0;
-    pBuffer++;
-
-    // The string argument (1 byte per character)
-    memcpy(pBuffer, modulePath, modulePathSize);
-
-    // Send the buffer
-    hr = DmSendBinary(conn, buffer, bufferSize);
-    XBDM_ERR_CHECK(hr);
-
-    hr = DmReceiveStatusResponse(conn, response, &responseSize);
-    XBDM_ERR_CHECK(hr);
-
-    if (response[0] != '2')
-    {
-        LogError("Unexpected response received: %s", response);
-        return E_FAIL;
-    }
-
-    ZeroMemory(response, RESPONSE_SIZE);
-    responseSize = RESPONSE_SIZE;
-
-    hr = DmReceiveBinary(conn, response, 16, NULL);
-    XBDM_ERR_CHECK(hr);
-
-    ZeroMemory(buffer, bufferSize);
-
-    hr = DmReceiveBinary(conn, buffer, bufferSize, NULL);
-    XBDM_ERR_CHECK(hr);
-
-    *pHandle = _byteswap_uint64(*(uint64_t *)(buffer + sizeof(uint64_t)));
-
-    free(buffer);
-
-    DmCloseConnection(conn);
-
-    return hr;
+    return Call("xam.xex", 1102, args, 1, pHandle);
 }
 
 // Call to XexLoadImage

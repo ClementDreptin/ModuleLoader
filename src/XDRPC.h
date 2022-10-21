@@ -13,7 +13,6 @@ typedef struct _XdrpcArgInfo
 {
     const void *pData;
     XdrpcArgType Type;
-    size_t Size;
 } XdrpcArgInfo;
 
 // Call the function at ordinal in moduleName and pass it numberOfArgs arguments coming from args.

@@ -118,7 +118,12 @@ HRESULT Call(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, size_
 
     // Increase the size of the buffer to allow all arguments to fit
     for (i = 0; i < numberOfArgs; i++)
-        bufferSize += args[i].Size;
+    {
+        if (args[i].Type == XdrpcArgType_String)
+            bufferSize += SizeOfString(args[i].pData);
+        else if (args[i].Type == XdrpcArgType_Integer)
+            bufferSize += sizeof(uint64_t);
+    }
 
     // Increase the size of the buffer to fit the module name
     bufferSize += moduleNameSize;
@@ -252,9 +257,9 @@ HRESULT Call(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, size_
         *pResult = _byteswap_uint64(*(uint64_t *)(buffer + sizeof(uint64_t)));
     }
 
-    DmCloseConnection(connection);
-
     free(buffer);
+
+    DmCloseConnection(connection);
 
     return hr;
 }
