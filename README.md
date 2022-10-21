@@ -6,7 +6,7 @@ ModuleLoader is a command line tool to load/unload modules from an RGH/Jtag/Devk
 - Xbox 360 Neighborhood set up with your RGH/Jtag/Devkit registered as the default console.
 
 ## Installation
-You can download the latest binary from the [releases](https://github.com/ClementDreptin/ModuleLoader/releases) or clone the repository and open `ModuleLoader.sln` in Visual Studio.
+You can download the latest binary from the [releases](https://github.com/ClementDreptin/ModuleLoader/releases) or clone the repository and open `ModuleLoader.sln` in Visual Studio to build from source.
 
 ## Documentation
 - `-h`: Show usage.

@@ -260,7 +260,7 @@ HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, 
 // Examples of buffer to construct to call different functions
 // ----------------------------------------------------------------
 //
-// 
+//
 // Call to GetModuleHandleA
 //
 // - module: "xam.xex"

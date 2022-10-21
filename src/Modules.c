@@ -73,10 +73,8 @@ static HRESULT IsModuleLoaded(const char *modulePath, BOOL *pIsLoaded)
 
     // Go through the loaded modules and check if modulePath is in them
     while ((hr = DmWalkLoadedModules(&pModuleWalker, &loadedModule)) == XBDM_NOERR)
-    {
         if (!strncmp(fileName, loadedModule.Name, sizeof(fileName)))
             *pIsLoaded = TRUE;
-    }
 
     // Error handling
     if (hr != XBDM_ENDOFLIST)
@@ -241,7 +239,7 @@ HRESULT Unload(const char *modulePath)
         return E_FAIL;
     }
 
-    moduleHandlePatchAddress = (void*)((uint32_t)moduleHandle + 0x40);
+    moduleHandlePatchAddress = (void *)((uint32_t)moduleHandle + 0x40);
 
     // The Xbox 360 is in big-endian so we need to swap the bytes of the patch value before sending it
     moduleHandlePatchValue = _byteswap_ushort(moduleHandlePatchValue);
