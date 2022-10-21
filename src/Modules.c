@@ -318,127 +318,20 @@ static HRESULT GetHandle(const char *modulePath, uint64_t *pHandle)
 
 static HRESULT XexLoadImage(const char *modulePath)
 {
-    HRESULT hr = S_OK;
-    char response[RESPONSE_SIZE] = { 0 };
-    DWORD responseSize = RESPONSE_SIZE;
-    char command[60] = { 0 };
-    const char commandFormat[] = "rpc system version=4 buf_size=%d processor=5 thread=\r\n";
-    const char moduleToGetTheFunctionFrom[] = "xboxkrnl.exe";
-    size_t modulePathSize = 0;
-    uint32_t ordinal = 409;
-    uint64_t bufferAddress = 0;
-    uint64_t firstBufferAddress = 0;
-    uint64_t secondBufferAddress = 0;
-    uint32_t numberOfParams = 4;
-    byte *buffer = NULL;
-    byte *pBuffer = NULL;
-    size_t bufferSize = 112;
-    PDM_CONNECTION conn = NULL;
+    XdrpcArgInfo args[4] = { { 0 }, { 0 }, { 0 }, { 0 } };
+    uint64_t eight = 8;
+    uint64_t zero = 0;
 
-    modulePathSize = strnlen_s(modulePath, MAX_PATH);
-    bufferSize += modulePathSize + 1;
+    args[0].pData = modulePath;
+    args[0].Type = XdrpcArgType_String;
+    args[1].pData = &eight;
+    args[1].Type = XdrpcArgType_Integer;
+    args[2].pData = &zero;
+    args[2].Type = XdrpcArgType_Integer;
+    args[3].pData = &zero;
+    args[3].Type = XdrpcArgType_Integer;
 
-    _snprintf_s(command, sizeof(command), _TRUNCATE, commandFormat, bufferSize);
-
-    hr = DmOpenConnection(&conn);
-    XBDM_ERR_CHECK(hr);
-
-    hr = DmSendCommand(conn, command, response, &responseSize);
-    XBDM_ERR_CHECK(hr);
-
-    if (sscanf_s(response, "204- buf_addr=%x\r\n", &bufferAddress) != 1)
-    {
-        LogError("Unexpected response received: %s", response);
-        return E_FAIL;
-    }
-
-    // Reset the response buffer for later
-    ZeroMemory(response, RESPONSE_SIZE);
-    responseSize = RESPONSE_SIZE;
-
-    buffer = malloc(bufferSize);
-    ZeroMemory(buffer, bufferSize);
-    pBuffer = buffer;
-
-    // Let at least 0x48 bytes between firstBufferAddress and the buffer address returned when the thread was created,
-    // I don't know why...
-    firstBufferAddress = bufferAddress + 0x48;
-
-    // For each argument that is not a string, we need to shift firstBufferAddress by the amount of space taken by the argument (8 bytes),
-    // in our case, there are 3 arguments that are not strings
-    firstBufferAddress += sizeof(uint64_t) * 3;
-
-    // The buffer needs to have 32 zeros at first, so we just move the pointer 32 bytes forwards because the entire buffer
-    // is already filled with zeros
-    pBuffer += 32;
-
-    // Write the number of parameters passed on the next 8 bytes
-    WriteUInt64(&pBuffer, numberOfParams);
-
-    // Leave 8 zeros
-    pBuffer += sizeof(uint64_t);
-
-    // Write firstBufferAddress on the next 8 bytes
-    WriteUInt64(&pBuffer, firstBufferAddress);
-
-    // Write the ordinal on the next 8 bytes
-    WriteUInt64(&pBuffer, ordinal);
-
-    // The amount of bytes between secondBufferAddress and firstBufferAddress needs to be a multiple of 8 and enough
-    // to contain the module name, which is xboxkrnl.exe
-    secondBufferAddress = firstBufferAddress + 16;
-
-    // Write secondBufferAddress
-    WriteUInt64(&pBuffer, secondBufferAddress);
-
-    // Second argument (8)
-    WriteUInt64(&pBuffer, 8ULL);
-
-    // Third integer argument
-    WriteUInt64(&pBuffer, 0ULL);
-
-    // Fourth integer argument
-    WriteUInt64(&pBuffer, 0ULL);
-
-    // Copy the module name (1 byte per character)
-    memcpy(pBuffer, moduleToGetTheFunctionFrom, sizeof(moduleToGetTheFunctionFrom));
-    pBuffer += sizeof(moduleToGetTheFunctionFrom);
-
-    // "xboxkrnl.exe" is only 13 characters with the null termination character so we need to leave 3 bytes to 0 to round up to 16
-    pBuffer += 3;
-
-    // The string argument (1 byte per character)
-    memcpy(pBuffer, modulePath, modulePathSize);
-
-    // Send the buffer
-    hr = DmSendBinary(conn, buffer, bufferSize);
-    XBDM_ERR_CHECK(hr);
-
-    hr = DmReceiveStatusResponse(conn, response, &responseSize);
-    XBDM_ERR_CHECK(hr);
-
-    if (response[0] != '2')
-    {
-        LogError("Unexpected response received: %s", response);
-        return E_FAIL;
-    }
-
-    ZeroMemory(response, RESPONSE_SIZE);
-    responseSize = RESPONSE_SIZE;
-
-    hr = DmReceiveBinary(conn, response, 16, NULL);
-    XBDM_ERR_CHECK(hr);
-
-    ZeroMemory(buffer, bufferSize);
-
-    hr = DmReceiveBinary(conn, buffer, bufferSize, NULL);
-    XBDM_ERR_CHECK(hr);
-
-    free(buffer);
-
-    DmCloseConnection(conn);
-
-    return hr;
+    return Call("xboxkrnl.exe", 409, args, 4, NULL);
 }
 
 // Call to XexUnloadImage
