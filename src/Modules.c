@@ -210,7 +210,9 @@ HRESULT Unload(const char *modulePath)
 
     BOOL moduleExists = FALSE;
     BOOL isModuleLoaded = FALSE;
+
     uint64_t moduleHandle = 0;
+    void *moduleHandlePatchAddress = NULL;
     uint16_t moduleHandlePatchValue = 1;
     size_t bytesWritten = 0;
 
@@ -247,8 +249,13 @@ HRESULT Unload(const char *modulePath)
         return E_FAIL;
     }
 
+    moduleHandlePatchAddress = (void*)((uint32_t)moduleHandle + 0x40);
+
+    // The Xbox 360 is in big-endian so we need to swap the bytes of the patch value before sending it
     moduleHandlePatchValue = _byteswap_ushort(moduleHandlePatchValue);
-    hr = DmSetMemory((void *)((uint32_t)moduleHandle + 0x40), sizeof(moduleHandlePatchValue), &moduleHandlePatchValue, (DWORD *)&bytesWritten);
+
+    // Before unloading a module, the short 0x0001 needs to be written at moduleHandle + 0x40, the console crashes otherwise
+    hr = DmSetMemory(moduleHandlePatchAddress, sizeof(moduleHandlePatchValue), &moduleHandlePatchValue, (DWORD *)&bytesWritten);
     if (FAILED(hr))
     {
         LogXbdmError(hr);
@@ -257,7 +264,7 @@ HRESULT Unload(const char *modulePath)
 
     if (bytesWritten != sizeof(moduleHandlePatchValue))
     {
-        LogError("Expected to write %d bytes at %p but only wrote %d.", sizeof(moduleHandlePatchValue), (uint32_t)moduleHandle + 0x40, bytesWritten);
+        LogError("Expected to write %d bytes at %p but only wrote %d.", sizeof(moduleHandlePatchValue), moduleHandlePatchAddress, bytesWritten);
         return E_FAIL;
     }
 

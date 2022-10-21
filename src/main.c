@@ -31,7 +31,7 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    // Case of using ModuleLoader by providing a module path
+    // Case of using ModuleLoader by just providing a module path
     if (argv[1][0] != '-')
         return UnloadThenLoad(argv[1]);
 

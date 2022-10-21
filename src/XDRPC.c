@@ -24,19 +24,18 @@ static void LogXbdmError(HRESULT hr)
     LogError(errorMsg);
 }
 
-// Calculate the size of string rounded up to the closest multiple of 8.
 static size_t SizeOfString(const char *string)
 {
+    // Get the amount of characters in the string
     size_t size = strnlen_s(string, MAX_PATH);
 
+    // Round up the size to the closest multiple of 8
     while (size % sizeof(uint64_t) != 0)
         size++;
 
     return size;
 }
 
-// Write the characters pointed by string at the buffer pointed by ppBuffer and increment it by the
-// size of string rounded up to the closest multiple of 8.
 static void WriteString(void **ppBuffer, const char *string)
 {
     size_t numberOfCharacters = strnlen_s(string, MAX_PATH);
@@ -47,9 +46,10 @@ static void WriteString(void **ppBuffer, const char *string)
     *ppBuffer = (byte *)*ppBuffer + sizeOfStringInBuffer;
 }
 
-// Write data at the buffer pointed by ppBuffer and increment it by the size of a uint64_t.
 static void WriteUInt64(void **ppBuffer, uint64_t data)
 {
+    // The bytes of data need to be swapped because they are in little-endian on the PC but need to
+    // be sent in big-endian to the console.
     *(uint64_t *)*ppBuffer = _byteswap_uint64(data);
 
     *ppBuffer = (uint64_t *)*ppBuffer + 1;
@@ -115,6 +115,7 @@ HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, 
     // Create the command from the format and the buffer size
     _snprintf_s(command, sizeof(command), _TRUNCATE, commandFormat, bufferSize);
 
+    // Open the XBDM connection
     hr = DmOpenConnection(&connection);
     if (FAILED(hr))
     {
@@ -122,6 +123,7 @@ HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, 
         return E_FAIL;
     }
 
+    // Send the command
     hr = DmSendCommand(connection, command, response, (DWORD *)&responseSize);
     if (FAILED(hr))
     {
@@ -200,6 +202,7 @@ HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, 
         return E_FAIL;
     }
 
+    // Receive the response status
     hr = DmReceiveStatusResponse(connection, response, (DWORD *)&responseSize);
     if (FAILED(hr))
     {
@@ -209,6 +212,7 @@ HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, 
         return E_FAIL;
     }
 
+    // Check if an error code was returned
     if (response[0] != '2')
     {
         LogError("Unexpected response received: %s", response);
@@ -217,12 +221,17 @@ HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, 
         return E_FAIL;
     }
 
+    // Fetch the response only if a return value is expected from the function
     if (pReturnValue != NULL)
     {
-        ZeroMemory(response, RESPONSE_SIZE);
-        responseSize = RESPONSE_SIZE;
+        // The return value is the second uint64_t in the buffer
+        void *returnValueLocationInBuffer = buffer + sizeof(*pReturnValue);
 
-        hr = DmReceiveBinary(connection, response, sizeof(uint64_t) * 2, NULL);
+        ZeroMemory(buffer, bufferSize);
+
+        // 2 8-byte packets are sent before the actual response buffer, I don't know what information they
+        // are supposed to hold...
+        hr = DmReceiveBinary(connection, buffer, sizeof(uint64_t) * 2, NULL);
         if (FAILED(hr))
         {
             LogXbdmError(hr);
@@ -231,8 +240,7 @@ HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, 
             return E_FAIL;
         }
 
-        ZeroMemory(buffer, bufferSize);
-
+        // Receive the actual response buffer (which is the buffer that was sent but with the return value in the second uint64_t)
         hr = DmReceiveBinary(connection, buffer, bufferSize, NULL);
         if (FAILED(hr))
         {
@@ -242,11 +250,15 @@ HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, 
             return E_FAIL;
         }
 
-        *pReturnValue = _byteswap_uint64(*(uint64_t *)(buffer + sizeof(*pReturnValue)));
+        // The bytes in the buffer need to be swapped because they are in big-endian and the PC's CPU has (most likely)
+        // a little-endian architecture.
+        *pReturnValue = _byteswap_uint64(*(uint64_t *)returnValueLocationInBuffer);
     }
 
+    // Cleanup the heap allocated buffer
     free(buffer);
 
+    // Close the XBDM connection
     DmCloseConnection(connection);
 
     return hr;
