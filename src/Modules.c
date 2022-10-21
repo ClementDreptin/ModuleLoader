@@ -1,6 +1,7 @@
 #include "Modules.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -43,16 +44,48 @@ static HRESULT FileExists(const char *filePath, BOOL *pFileExists)
     return hr;
 }
 
+static HRESULT GetFileNameFromPath(const char *filePath, char *fileName, size_t fileNameSize)
+{
+    errno_t err = 0;
+
+    char baseName[MAX_PATH] = { 0 };
+    char extension[MAX_PATH] = { 0 };
+
+    // Isolate the base name and the extension of modulePath
+    err = _splitpath_s(filePath, NULL, 0, NULL, 0, baseName, sizeof(baseName), extension, sizeof(extension));
+    if (err != 0)
+    {
+        LogError("Could not split path: %s.", filePath);
+        return E_FAIL;
+    }
+
+    // Build the file name (base name + extension)
+    strncpy_s(fileName, fileNameSize, baseName, _TRUNCATE);
+    strncat_s(fileName, fileNameSize, extension, _TRUNCATE);
+
+    return S_OK;
+}
+
 HRESULT IsModuleLoaded(const char *modulePath, BOOL *pIsLoaded)
 {
     HRESULT hr = S_OK;
+
     PDM_WALK_MODULES pModuleWalker = NULL;
     DMN_MODLOAD loadedModule = { 0 };
 
+    char fileName[MAX_PATH] = { 0 };
+
+    // Get the file name from modulePath (base name + extension)
+    hr = GetFileNameFromPath(modulePath, fileName, sizeof(fileName));
+    if (FAILED(hr))
+        return E_FAIL;
+
     // Go through the loaded modules and check if modulePath is in them
     while ((hr = DmWalkLoadedModules(&pModuleWalker, &loadedModule)) == XBDM_NOERR)
-        if (strstr(modulePath, loadedModule.Name) != NULL)
+    {
+        if (!strncmp(fileName, loadedModule.Name, sizeof(fileName)))
             *pIsLoaded = TRUE;
+    }
 
     // Error handling
     if (hr != XBDM_ENDOFLIST)
