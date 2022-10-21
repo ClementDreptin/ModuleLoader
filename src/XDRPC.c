@@ -55,23 +55,6 @@ static void WriteUInt64(void **ppBuffer, uint64_t data)
     *ppBuffer = (uint64_t *)*ppBuffer + 1;
 }
 
-static void PrintBuffer(void *pBuffer, size_t bufferSize)
-{
-    size_t i = 0;
-
-    for (i = 0; i < bufferSize; i++)
-    {
-        printf("%02hhX ", ((byte *)pBuffer)[i]);
-
-        if ((i + 1) % 16 == 0)
-            printf("\n");
-        else if ((i + 1) % 8 == 0)
-            printf("  ");
-    }
-
-    printf("\n");
-}
-
 HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, size_t numberOfArgs, uint64_t *pReturnValue)
 {
     HRESULT hr = S_OK;
@@ -268,3 +251,59 @@ HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, 
 
     return hr;
 }
+
+// ----------------------------------------------------------------
+// Examples of buffer to construct to call different functions
+// ----------------------------------------------------------------
+//
+// 
+// Call to GetModuleHandleA
+//
+// - module: "xam.xex"
+// - ordinal: 1102
+// - number of args: 1
+// - 1st arg: modulePath
+//
+// 00 00 00 00 00 00 00 00   00 00 00 00 00 00 00 00   <-- 16 empty bytes
+// 00 00 00 00 00 00 00 00   00 00 00 00 00 00 00 00   <-- 16 empty bytes
+// 00 00 00 00 00 00 00 01   00 00 00 00 00 00 00 00   <-- num of args (1) | 8 empty bytes
+// 00 00 00 00 3A 15 CC 58   00 00 00 00 00 00 04 4E   <-- 1st address     | ordinal (1102)
+// 00 00 00 00 3A 15 CC 60   78 61 6D 2E 78 65 78 00   <-- 2nd address     | module name ("xam.xex")
+// 68 64 64 3A 5C 50 6C 75   67 69 6E 73 5C 48 61 79   <-- string argument ("hdd:\Plugins\Hayzen.xex")
+// 7A 65 6E 2E 78 65 78 00
+//
+//
+// Call to XexLoadImage
+//
+// - module: "xboxkrnl.exe"
+// - ordinal: 409
+// - number of args: 4
+// - 1st arg: modulePath
+// - 2nd arg: 8
+// - 3rd arg: 0
+// - 4th arg: 0
+//
+// 00 00 00 00 00 00 00 00   00 00 00 00 00 00 00 00   <-- 16 empty bytes
+// 00 00 00 00 00 00 00 00   00 00 00 00 00 00 00 00   <-- 16 empty bytes
+// 00 00 00 00 00 00 00 04   00 00 00 00 00 00 00 00   <-- num of args (4) | 8 empty bytes
+// 00 00 00 00 3A 12 D3 B0   00 00 00 00 00 00 01 99   <-- 1st address     | ordinal (409)
+// 00 00 00 00 3A 12 D3 C0   00 00 00 00 00 00 00 08   <-- 2nd address     | 2nd arg (8)
+// 00 00 00 00 00 00 00 00   00 00 00 00 00 00 00 00   <-- 3rd arg (0)     | 4th arg (0)
+// 78 62 6F 78 6B 72 6E 6C   2E 65 78 65 00 00 00 00   <-- module name ("xboxkrnl.exe")
+// 68 64 64 3A 5C 50 6C 75   67 69 6E 73 5C 48 61 79   <-- string argument ("hdd:\Plugins\Hayzen.xex")
+// 7A 65 6E 2E 78 65 78 00
+//
+//
+// Call to XexUnloadImage
+//
+// - module: "xboxkrnl.exe"
+// - ordinal: 417
+// - number of args: 1
+// - 1st arg: moduleHandle
+//
+// 00 00 00 00 00 00 00 00   00 00 00 00 00 00 00 00   <-- 16 empty bytes
+// 00 00 00 00 00 00 00 00   00 00 00 00 00 00 00 00   <-- 16 empty bytes
+// 00 00 00 00 00 00 00 01   00 00 00 00 00 00 00 00   <-- num of args (1)  | 8 empty bytes
+// 00 00 00 00 3A 17 4C 78   00 00 00 00 00 00 01 A1   <-- 1st address      | ordinal (417)
+// 00 00 00 00 3A 14 FE 08   78 62 6F 78 6B 72 6E 6C   <-- 1st arg (handle) | module name ("xboxkrnl.exe")
+// 2E 65 78 65 00 00 00 00
