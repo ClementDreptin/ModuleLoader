@@ -271,9 +271,18 @@ HRESULT UnloadThenLoad(const char *modulePath)
 {
     HRESULT hr = S_OK;
 
-    hr = Unload(modulePath);
+    BOOL isModuleLoaded = FALSE;
+
+    hr = IsModuleLoaded(modulePath, &isModuleLoaded);
     if (FAILED(hr))
         return E_FAIL;
+
+    if (isModuleLoaded == TRUE)
+    {
+        hr = Unload(modulePath);
+        if (FAILED(hr))
+            return E_FAIL;
+    }
 
     hr = Load(modulePath);
     if (FAILED(hr))
