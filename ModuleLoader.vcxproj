@@ -64,7 +64,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WIN32;NDEBUG;_CONSOLE</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)$(ProjectName)\%(RelativeDir)</ObjectFileName>
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
