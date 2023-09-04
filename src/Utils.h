@@ -10,3 +10,6 @@ HRESULT AddXdkBinDirToPath(void);
 
 // Translate the HRESULT hr into an error message and write it to stderr.
 void LogXbdmError(HRESULT hr);
+
+// Convert a time_t to a formatted date string.
+void TimestampToDateString(time_t timestamp, char *date, size_t dateSize);

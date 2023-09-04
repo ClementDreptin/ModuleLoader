@@ -100,7 +100,20 @@ HRESULT ShowLoadedModuleNames(void)
 
     // Go through the loaded modules and print their names
     while ((hr = DmWalkLoadedModules(&pModuleWalker, &loadedModule)) == XBDM_NOERR)
-        puts(loadedModule.Name);
+    {
+        // Create a date string from the timestamp
+        char date[50] = { 0 };
+        TimestampToDateString(loadedModule.TimeStamp, date, sizeof(date));
+
+        printf("%s\n", loadedModule.Name);
+        printf("    BaseAddress: 0x%X\n", loadedModule.BaseAddress);
+        printf("    Size:        0x%X\n", loadedModule.Size);
+        printf("    Timestamp:   %s\n", date);
+        printf("    Checksum:    0x%X\n", loadedModule.CheckSum);
+        printf("    DataAddress: 0x%X\n", loadedModule.PDataAddress);
+        printf("    DataSize:    0x%X\n", loadedModule.PDataSize);
+        printf("\n");
+    }
 
     // Error handling
     if (hr != XBDM_ENDOFLIST)

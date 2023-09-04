@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 // XBDM uses bit field types other than int which triggers a warning at warning level 4
 // so we just disable it for XBDM
@@ -87,4 +88,11 @@ void LogXbdmError(HRESULT hr)
     DmTranslateError(hr, errorMsg, sizeof(errorMsg));
 
     LogError(errorMsg);
+}
+
+void TimestampToDateString(time_t timestamp, char *date, size_t dateSize)
+{
+    struct tm dateTime;
+    localtime_s(&dateTime, &timestamp);
+    strftime(date, dateSize, "%B %d, %Y (%H:%M:%S)", &dateTime);
 }
