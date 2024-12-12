@@ -91,7 +91,7 @@ static HRESULT IsModuleLoaded(const char *modulePath, BOOL *pIsLoaded)
     return S_OK;
 }
 
-HRESULT ShowLoadedModules(void)
+HRESULT ShowLoadedModules(BOOL verbose)
 {
     HRESULT hr = S_OK;
 
@@ -106,13 +106,17 @@ HRESULT ShowLoadedModules(void)
         TimestampToDateString(loadedModule.TimeStamp, date, sizeof(date));
 
         printf("%s\n", loadedModule.Name);
-        printf("    BaseAddress: 0x%X\n", loadedModule.BaseAddress);
-        printf("    Size:        0x%X\n", loadedModule.Size);
-        printf("    Timestamp:   %s\n", date);
-        printf("    Checksum:    0x%X\n", loadedModule.CheckSum);
-        printf("    DataAddress: 0x%X\n", loadedModule.PDataAddress);
-        printf("    DataSize:    0x%X\n", loadedModule.PDataSize);
-        printf("\n");
+
+        if (verbose)
+        {
+            printf("    BaseAddress: 0x%X\n", loadedModule.BaseAddress);
+            printf("    Size:        0x%X\n", loadedModule.Size);
+            printf("    Timestamp:   %s\n", date);
+            printf("    Checksum:    0x%X\n", loadedModule.CheckSum);
+            printf("    DataAddress: 0x%X\n", loadedModule.PDataAddress);
+            printf("    DataSize:    0x%X\n", loadedModule.PDataSize);
+            printf("\n");
+        }
     }
 
     // Error handling

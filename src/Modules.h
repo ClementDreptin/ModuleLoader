@@ -2,7 +2,7 @@
 
 #include <Windows.h>
 
-HRESULT ShowLoadedModules(void);
+HRESULT ShowLoadedModules(BOOL verbose);
 
 HRESULT Load(const char *modulePath);
 

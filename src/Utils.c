@@ -21,6 +21,8 @@ void ShowUsage(void)
         "\n"
         "    -s:               Show loaded modules.\n"
         "\n"
+        "    -S:               Show loaded modules and their metadata (verbose).\n"
+        "\n"
         "    <module_path>:    If <module_path> is already loaded, it will be unloaded then\n"
         "                      loaded back, otherwise it will just be loaded.\n"
         "\n"
