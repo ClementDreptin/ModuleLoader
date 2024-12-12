@@ -17,8 +17,8 @@
   </PropertyGroup>
   <PropertyGroup Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</UseDebugLibraries>
-    <UseDebugLibraries Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</UseDebugLibraries>
+    <UseDebugLibraries Condition="'$(Configuration)'=='Debug'">true</UseDebugLibraries>
+    <UseDebugLibraries Condition="'$(Configuration)'=='Release'">false</UseDebugLibraries>
     <CharacterSet>MultiByte</CharacterSet>
     <PlatformToolset>v100</PlatformToolset>
   </PropertyGroup>
@@ -31,15 +31,20 @@
     <OutDir>$(SolutionDir)build\$(Configuration)\bin\</OutDir>
     <IntDir>$(SolutionDir)build\$(Configuration)\obj\</IntDir>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+  <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalIncludeDirectories>$(XEDK)\include\win32</AdditionalIncludeDirectories>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DebugInformationFormat Condition="'$(Configuration)'=='Debug'">ProgramDatabase</DebugInformationFormat>
       <WarningLevel>Level4</WarningLevel>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <Optimization Condition="'$(Configuration)'=='Debug'">Disabled</Optimization>
+      <Optimization Condition="'$(Configuration)'=='Release'">Full</Optimization>
+      <FavorSizeOrSpeed Condition="'$(Configuration)'=='Release'">Speed</FavorSizeOrSpeed>
+      <IntrinsicFunctions Condition="'$(Configuration)'=='Release'">true</IntrinsicFunctions>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">WIN32;_DEBUG;_CONSOLE</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Release'">_WIN32;NDEBUG;_CONSOLE</PreprocessorDefinitions>
+      <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary Condition="'$(Configuration)'=='Release'">MultiThreaded</RuntimeLibrary>
       <ObjectFileName>$(IntDir)$(ProjectName)\%(RelativeDir)</ObjectFileName>
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
@@ -48,31 +53,9 @@
       <AdditionalLibraryDirectories>$(XEDK)\lib\win32\vs2010;$(XEDK)\lib\win32</AdditionalLibraryDirectories>
       <AdditionalDependencies>xbdm.lib</AdditionalDependencies>
       <DelayLoadDLLs>xbdm.dll</DelayLoadDLLs>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ProgramDatabaseFile>$(IntDir)$(ProjectName)\$(ProjectName).pdb</ProgramDatabaseFile>
+      <GenerateDebugInformation Condition="'$(Configuration)'=='Debug'">true</GenerateDebugInformation>
+      <ProgramDatabaseFile Condition="'$(Configuration)'=='Debug'">$(IntDir)$(ProjectName)\$(ProjectName).pdb</ProgramDatabaseFile>
       <SubSystem>Console</SubSystem>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <ClCompile>
-      <AdditionalIncludeDirectories>$(XEDK)\include\win32</AdditionalIncludeDirectories>
-      <WarningLevel>Level4</WarningLevel>
-      <TreatWarningAsError>true</TreatWarningAsError>
-      <Optimization>Full</Optimization>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <PreprocessorDefinitions>_WIN32;NDEBUG;_CONSOLE</PreprocessorDefinitions>
-      <ObjectFileName>$(IntDir)$(ProjectName)\%(RelativeDir)</ObjectFileName>
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
-    <Link>
-      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalLibraryDirectories>$(XEDK)\lib\win32\vs2010;$(XEDK)\lib\win32</AdditionalLibraryDirectories>
-      <AdditionalDependencies>xbdm.lib</AdditionalDependencies>
-      <DelayLoadDLLs>xbdm.dll</DelayLoadDLLs>
-      <SubSystem>Console</SubSystem>
-      <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
