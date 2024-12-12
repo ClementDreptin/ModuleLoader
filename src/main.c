@@ -46,7 +46,7 @@ int main(int argc, char **argv)
 
     // Module list
     if (!strcmp(argv[1], "-s"))
-        return ShowLoadedModuleNames();
+        return ShowLoadedModules();
 
     // Loading
     if (!strcmp(argv[1], "-l"))

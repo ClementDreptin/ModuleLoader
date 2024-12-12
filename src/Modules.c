@@ -91,7 +91,7 @@ static HRESULT IsModuleLoaded(const char *modulePath, BOOL *pIsLoaded)
     return S_OK;
 }
 
-HRESULT ShowLoadedModuleNames(void)
+HRESULT ShowLoadedModules(void)
 {
     HRESULT hr = S_OK;
 
