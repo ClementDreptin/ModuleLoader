@@ -71,7 +71,7 @@ static HRESULT IsModuleLoaded(const char *modulePath, BOOL *pIsLoaded)
     if (FAILED(hr))
         return E_FAIL;
 
-    // Go through the loaded modules and check if modulePath is in them
+    // Go through the loaded modules and check if fileName is in them
     while ((hr = DmWalkLoadedModules(&pModuleWalker, &loadedModule)) == XBDM_NOERR)
         if (!strncmp(fileName, loadedModule.Name, sizeof(fileName)))
             *pIsLoaded = TRUE;
@@ -211,26 +211,11 @@ HRESULT Unload(const char *modulePath)
 {
     HRESULT hr = S_OK;
 
-    BOOL moduleExists = FALSE;
     BOOL isModuleLoaded = FALSE;
-
     uint64_t moduleHandle = 0;
     void *moduleHandlePatchAddress = NULL;
     uint16_t moduleHandlePatchValue = 1;
     size_t bytesWritten = 0;
-
-    hr = FileExists(modulePath, &moduleExists);
-    if (FAILED(hr))
-    {
-        LogXbdmError(hr);
-        return E_FAIL;
-    }
-
-    if (moduleExists == FALSE)
-    {
-        LogError("%s does not exist.", modulePath);
-        return XBDM_NOSUCHFILE;
-    }
 
     hr = IsModuleLoaded(modulePath, &isModuleLoaded);
     if (FAILED(hr))

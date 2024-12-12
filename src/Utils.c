@@ -26,7 +26,7 @@ void ShowUsage(void)
         "\n"
         "    -l <module_path>: Load the module located at <module_path> (absolute path).\n"
         "\n"
-        "    -u <module_path>: Unload the module located at <module_path> (absolute path).";
+        "    -u <module_name>: Unload the module named <module_name>. <module_name> can also be an absolute path.";
 
     puts(usage);
 }

@@ -65,7 +65,7 @@ int main(int argc, char **argv)
     {
         if (numberOfArguments < 2)
         {
-            LogError("You need to specify an absolute module path. ModuleLoader -h to see the usage.");
+            LogError("You need to specify a module name. ModuleLoader -h to see the usage.");
             return EXIT_FAILURE;
         }
 
