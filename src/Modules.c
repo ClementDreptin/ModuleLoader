@@ -1,8 +1,8 @@
 #include "Modules.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 // XBDM uses bit field types other than int which triggers a warning at warning level 4

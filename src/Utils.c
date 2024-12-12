@@ -1,5 +1,4 @@
 #include "Utils.h"
-#include "Log.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,6 +10,8 @@
 #pragma warning(disable : 4214)
 #include <xbdm.h>
 #pragma warning(pop)
+
+#include "Log.h"
 
 void ShowUsage(void)
 {

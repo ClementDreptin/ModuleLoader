@@ -1,7 +1,7 @@
 #pragma once
 
-#include <Windows.h>
 #include <stdint.h>
+#include <Windows.h>
 
 typedef enum _XdrpcArgType
 {
