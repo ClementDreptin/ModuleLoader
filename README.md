@@ -16,6 +16,7 @@ You can download the latest binary from the [releases](https://github.com/Clemen
 
 -   `-h`: Show usage.
 -   `-s`: Show loaded modules.
+-   `-S`: Show loaded modules and their metadata (verbose).
 -   `<module_path>`: If `<module_path>` is already loaded, it will be unloaded then loaded back, otherwise it will just be loaded.
 -   `-l <module_path>`: Load the module located at `<module_path>` (absolute path).
--   `-u <module_path>`: Unload the module located at `<module_path>` (absolute path).
+-   `-u <module_name>`: Unload the module named `<module_name>`. `<module_name>` can also be an absolute path.
