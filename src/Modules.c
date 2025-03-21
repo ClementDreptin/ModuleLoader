@@ -208,7 +208,7 @@ HRESULT Load(const char *modulePath)
 
     LogSuccess("%s has been loaded.", modulePath);
 
-    return hr;
+    return S_OK;
 }
 
 HRESULT Unload(const char *modulePath)
@@ -266,7 +266,7 @@ HRESULT Unload(const char *modulePath)
 
     LogSuccess("%s has been unloaded.", modulePath);
 
-    return hr;
+    return S_OK;
 }
 
 HRESULT UnloadThenLoad(const char *modulePath)
@@ -290,5 +290,5 @@ HRESULT UnloadThenLoad(const char *modulePath)
     if (FAILED(hr))
         return E_FAIL;
 
-    return hr;
+    return S_OK;
 }

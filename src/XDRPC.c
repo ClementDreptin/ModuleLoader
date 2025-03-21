@@ -94,12 +94,10 @@ HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, 
 
     // Increase the size of the buffer to allow all arguments to fit
     for (i = 0; i < numberOfArgs; i++)
-    {
         if (args[i].Type == XdrpcArgType_String)
             bufferSize += SizeOfString(args[i].pData);
         else if (args[i].Type == XdrpcArgType_Integer)
             bufferSize += sizeof(uint64_t);
-    }
 
     // Increase the size of the buffer to fit the module name
     bufferSize += moduleNameSize;
@@ -253,7 +251,7 @@ HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, 
     // Close the XBDM connection
     DmCloseConnection(connection);
 
-    return hr;
+    return S_OK;
 }
 
 // ----------------------------------------------------------------
