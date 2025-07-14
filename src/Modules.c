@@ -146,9 +146,12 @@ static HRESULT XGetModuleHandleA(const char *modulePath, uint64_t *pHandle)
 
 static HRESULT XexLoadImage(const char *modulePath)
 {
+    HRESULT hr = S_OK;
+
     XdrpcArgInfo args[4] = { { 0 }, { 0 }, { 0 }, { 0 } };
     uint64_t eight = 8;
     uint64_t zero = 0;
+    uint64_t status = 0;
 
     args[0].pData = modulePath;
     args[0].Type = XdrpcArgType_String;
@@ -159,17 +162,40 @@ static HRESULT XexLoadImage(const char *modulePath)
     args[3].pData = &zero;
     args[3].Type = XdrpcArgType_Integer;
 
-    return XdrpcCall("xboxkrnl.exe", 409, args, 4, NULL);
+    hr = XdrpcCall("xboxkrnl.exe", 409, args, 4, &status);
+    if (FAILED(hr))
+        return hr;
+
+    if (FAILED(status))
+    {
+        LogError("Loading failed with error %X.", status);
+        return E_FAIL;
+    }
+
+    return S_OK;
 }
 
 static HRESULT XexUnloadImage(uint64_t moduleHandle)
 {
+    HRESULT hr = S_OK;
+
     XdrpcArgInfo args[1] = { { 0 } };
+    uint64_t status = 0;
 
     args[0].pData = &moduleHandle;
     args[0].Type = XdrpcArgType_Integer;
 
-    return XdrpcCall("xboxkrnl.exe", 417, args, 1, NULL);
+    hr = XdrpcCall("xboxkrnl.exe", 417, args, 1, NULL);
+    if (FAILED(hr))
+        return hr;
+
+    if (FAILED(status))
+    {
+        LogError("Unloading failed with error %X.", status);
+        return E_FAIL;
+    }
+
+    return S_OK;
 }
 
 HRESULT Load(const char *modulePath)
