@@ -37,15 +37,9 @@ HRESULT AddXdkBinDirToPath(void)
 {
     errno_t err = 0;
 
+    // Get the value of %PATH%
     char *originalPath = NULL;
     size_t originalPathSize = 0;
-    char *xdkDir = NULL;
-    size_t xdkDirSize = 0;
-    char *newPath = NULL;
-    size_t newPathSize = 0;
-    char newPathFormat[] = "%s\\bin\\win32;%s";
-
-    // Get the value of %PATH%
     err = _dupenv_s(&originalPath, &originalPathSize, "PATH");
     if (err != 0)
     {
@@ -54,6 +48,8 @@ HRESULT AddXdkBinDirToPath(void)
     }
 
     // Get the value of %XEDK%
+    char *xdkDir = NULL;
+    size_t xdkDirSize = 0;
     err = _dupenv_s(&xdkDir, &xdkDirSize, "XEDK");
     if (err != 0)
     {
@@ -62,8 +58,14 @@ HRESULT AddXdkBinDirToPath(void)
     }
 
     // Calculate the size of the new value of %PATH%
-    newPathSize = originalPathSize + xdkDirSize + sizeof(newPathFormat);
-    newPath = malloc(newPathSize);
+    char newPathFormat[] = "%s\\bin\\win32;%s";
+    size_t newPathSize = originalPathSize + xdkDirSize + sizeof(newPathFormat);
+    char *newPath = malloc(newPathSize);
+    if (newPath == NULL)
+    {
+        LogError("Could not allocate memory for the new value of %PATH%.");
+        return E_FAIL;
+    }
 
     // Create the new value of %PATH% from the format
     _snprintf_s(newPath, newPathSize, _TRUNCATE, newPathFormat, xdkDir, originalPath);

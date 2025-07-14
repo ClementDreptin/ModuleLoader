@@ -18,12 +18,8 @@
 
 static HRESULT FileExists(const char *filePath, BOOL *pFileExists)
 {
-    HRESULT hr = S_OK;
-
     DM_FILE_ATTRIBUTES fileAttributes = { 0 };
-
-    hr = DmGetFileAttributes(filePath, &fileAttributes);
-
+    HRESULT hr = DmGetFileAttributes(filePath, &fileAttributes);
     if (hr == XBDM_NOERR)
     {
         *pFileExists = TRUE;
@@ -37,13 +33,11 @@ static HRESULT FileExists(const char *filePath, BOOL *pFileExists)
 
 static HRESULT GetFileNameFromPath(const char *filePath, char *fileName, size_t fileNameSize)
 {
-    errno_t err = 0;
-
     char baseName[MAX_PATH] = { 0 };
     char extension[MAX_PATH] = { 0 };
 
     // Isolate the base name and the extension of modulePath
-    err = _splitpath_s(filePath, NULL, 0, NULL, 0, baseName, sizeof(baseName), extension, sizeof(extension));
+    errno_t err = _splitpath_s(filePath, NULL, 0, NULL, 0, baseName, sizeof(baseName), extension, sizeof(extension));
     if (err != 0)
     {
         LogError("Could not split path: %s.", filePath);
@@ -109,11 +103,11 @@ HRESULT ShowLoadedModules(BOOL verbose)
 
         if (verbose)
         {
-            printf("    BaseAddress: 0x%X\n", loadedModule.BaseAddress);
+            printf("    BaseAddress: 0x%p\n", loadedModule.BaseAddress);
             printf("    Size:        0x%X\n", loadedModule.Size);
             printf("    Timestamp:   %s\n", date);
             printf("    Checksum:    0x%X\n", loadedModule.CheckSum);
-            printf("    DataAddress: 0x%X\n", loadedModule.PDataAddress);
+            printf("    DataAddress: 0x%p\n", loadedModule.PDataAddress);
             printf("    DataSize:    0x%X\n", loadedModule.PDataSize);
             printf("\n");
         }
@@ -146,8 +140,6 @@ static HRESULT XGetModuleHandleA(const char *modulePath, uint64_t *pHandle)
 
 static HRESULT XexLoadImage(const char *modulePath)
 {
-    HRESULT hr = S_OK;
-
     XdrpcArgInfo args[4] = { { 0 }, { 0 }, { 0 }, { 0 } };
     uint64_t eight = 8;
     uint64_t zero = 0;
@@ -162,7 +154,7 @@ static HRESULT XexLoadImage(const char *modulePath)
     args[3].pData = &zero;
     args[3].Type = XdrpcArgType_Integer;
 
-    hr = XdrpcCall("xboxkrnl.exe", 409, args, 4, &status);
+    HRESULT hr = XdrpcCall("xboxkrnl.exe", 409, args, 4, &status);
     if (FAILED(hr))
         return hr;
 
@@ -177,15 +169,13 @@ static HRESULT XexLoadImage(const char *modulePath)
 
 static HRESULT XexUnloadImage(uint64_t moduleHandle)
 {
-    HRESULT hr = S_OK;
-
     XdrpcArgInfo args[1] = { { 0 } };
     uint64_t status = 0;
 
     args[0].pData = &moduleHandle;
     args[0].Type = XdrpcArgType_Integer;
 
-    hr = XdrpcCall("xboxkrnl.exe", 417, args, 1, NULL);
+    HRESULT hr = XdrpcCall("xboxkrnl.exe", 417, args, 1, NULL);
     if (FAILED(hr))
         return hr;
 
@@ -203,8 +193,6 @@ HRESULT Load(const char *modulePath)
     HRESULT hr = S_OK;
 
     BOOL moduleExists = FALSE;
-    BOOL isModuleLoaded = FALSE;
-
     hr = FileExists(modulePath, &moduleExists);
     if (FAILED(hr))
     {
@@ -218,6 +206,7 @@ HRESULT Load(const char *modulePath)
         return XBDM_NOSUCHFILE;
     }
 
+    BOOL isModuleLoaded = FALSE;
     hr = IsModuleLoaded(modulePath, &isModuleLoaded);
     if (FAILED(hr))
         return E_FAIL;
@@ -242,11 +231,6 @@ HRESULT Unload(const char *modulePath)
     HRESULT hr = S_OK;
 
     BOOL isModuleLoaded = FALSE;
-    uint64_t moduleHandle = 0;
-    void *moduleHandlePatchAddress = NULL;
-    uint16_t moduleHandlePatchValue = 1;
-    size_t bytesWritten = 0;
-
     hr = IsModuleLoaded(modulePath, &isModuleLoaded);
     if (FAILED(hr))
         return E_FAIL;
@@ -257,22 +241,24 @@ HRESULT Unload(const char *modulePath)
         return E_FAIL;
     }
 
+    uint64_t moduleHandle = 0;
     hr = XGetModuleHandleA(modulePath, &moduleHandle);
     if (FAILED(hr))
         return E_FAIL;
 
     if (moduleHandle == 0)
     {
-        LogError("Handle of %s is invalid", modulePath);
+        LogError("Handle of %s is invalid.", modulePath);
         return E_FAIL;
     }
 
-    moduleHandlePatchAddress = (void *)((uint32_t)moduleHandle + 0x40);
+    void *moduleHandlePatchAddress = (void *)((uint32_t)moduleHandle + 0x40);
 
     // The Xbox 360 is in big-endian so we need to swap the bytes of the patch value before sending it
-    moduleHandlePatchValue = _byteswap_ushort(moduleHandlePatchValue);
+    uint16_t moduleHandlePatchValue = _byteswap_ushort(1);
 
     // Before unloading a module, the short 0x0001 needs to be written at moduleHandle + 0x40, the console crashes otherwise
+    size_t bytesWritten = 0;
     hr = DmSetMemory(moduleHandlePatchAddress, sizeof(moduleHandlePatchValue), &moduleHandlePatchValue, (DWORD *)&bytesWritten);
     if (FAILED(hr))
     {
@@ -300,7 +286,6 @@ HRESULT UnloadThenLoad(const char *modulePath)
     HRESULT hr = S_OK;
 
     BOOL isModuleLoaded = FALSE;
-
     hr = IsModuleLoaded(modulePath, &isModuleLoaded);
     if (FAILED(hr))
         return E_FAIL;

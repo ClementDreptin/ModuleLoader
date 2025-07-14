@@ -51,34 +51,9 @@ HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, 
 {
     HRESULT hr = S_OK;
 
-    size_t i = 0;
-    BOOL hasStringArgs = FALSE;
-
-    char command[60] = { 0 };
-    const char commandFormat[] = "rpc system version=4 buf_size=%d processor=5 thread=\r\n";
-
-    char response[RESPONSE_SIZE] = { 0 };
-    size_t responseSize = RESPONSE_SIZE;
-
-    size_t moduleNameSize = 0;
-
-    uint64_t bufferAddress = 0;
-    uint64_t firstBufferAddress = 0;
-    uint64_t secondBufferAddress = 0;
-
-    byte *buffer = NULL;
-    byte *pBuffer = NULL;
-    size_t bufferSize = 0;
-
-    PDM_CONNECTION connection = NULL;
-
-    moduleNameSize = SizeOfString(moduleName);
-
-    // The buffer size needs to be 0x40, I don't know why...
-    bufferSize = 0x40;
-
     // Check if any string arguments are passed
-    for (i = 0; i < numberOfArgs; i++)
+    BOOL hasStringArgs = FALSE;
+    for (size_t i = 0; i < numberOfArgs; i++)
     {
         if (args[i].Type == XdrpcArgType_String)
         {
@@ -87,25 +62,32 @@ HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, 
         }
     }
 
+    // The buffer size needs to be 0x40, I don't know why...
+    size_t bufferSize = 0x40;
+
     // It seems like a second buffer address needs to be in the buffer only when string arguments are passed,
     // I'm not really sure about this assumption...
     if (hasStringArgs == TRUE)
-        bufferSize += sizeof(secondBufferAddress);
+        bufferSize += sizeof(uint64_t);
 
     // Increase the size of the buffer to allow all arguments to fit
-    for (i = 0; i < numberOfArgs; i++)
+    for (size_t i = 0; i < numberOfArgs; i++)
         if (args[i].Type == XdrpcArgType_String)
             bufferSize += SizeOfString(args[i].pData);
         else if (args[i].Type == XdrpcArgType_Integer)
             bufferSize += sizeof(uint64_t);
 
     // Increase the size of the buffer to fit the module name
+    size_t moduleNameSize = SizeOfString(moduleName);
     bufferSize += moduleNameSize;
 
     // Create the command from the format and the buffer size
+    char command[60] = { 0 };
+    const char commandFormat[] = "rpc system version=4 buf_size=%d processor=5 thread=\r\n";
     _snprintf_s(command, sizeof(command), _TRUNCATE, commandFormat, bufferSize);
 
     // Open the XBDM connection
+    PDM_CONNECTION connection = NULL;
     hr = DmOpenConnection(&connection);
     if (FAILED(hr))
     {
@@ -114,6 +96,8 @@ HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, 
     }
 
     // Send the command
+    char response[RESPONSE_SIZE] = { 0 };
+    size_t responseSize = RESPONSE_SIZE;
     hr = DmSendCommand(connection, command, response, (DWORD *)&responseSize);
     if (FAILED(hr))
     {
@@ -122,7 +106,8 @@ HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, 
     }
 
     // Extract the buffer address from the response
-    if (sscanf_s(response, "204- buf_addr=%x\r\n", &bufferAddress) != 1)
+    uint64_t bufferAddress = 0;
+    if (sscanf_s(response, "204- buf_addr=%x\r\n", (uint32_t *)&bufferAddress) != 1)
     {
         LogError("Unexpected response received: %s", response);
         return E_FAIL;
@@ -133,16 +118,22 @@ HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, 
     responseSize = RESPONSE_SIZE;
 
     // Allocate enough memory to hold the main RPC buffer
-    buffer = malloc(bufferSize);
+    byte *buffer = malloc(bufferSize);
+    if (buffer == NULL)
+    {
+        LogError("Failed to allocate memory for the main RPC buffer.");
+        return E_FAIL;
+    }
+
     ZeroMemory(buffer, bufferSize);
-    pBuffer = buffer;
+    byte *pBuffer = buffer;
 
     // Let at least 0x40 bytes between firstBufferAddress and the buffer address returned when the thread was created,
     // I don't know why...
-    firstBufferAddress = bufferAddress + 0x40;
+    uint64_t firstBufferAddress = bufferAddress + 0x40;
 
     // For each argument, we need to shift firstBufferAddress by 8 bytes
-    for (i = 0; i < numberOfArgs; i++)
+    for (size_t i = 0; i < numberOfArgs; i++)
         firstBufferAddress += sizeof(uint64_t);
 
     // The buffer needs to have 32 zeros at first, so we just move the pointer 32 bytes forwards because the entire buffer
@@ -164,12 +155,12 @@ HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, 
     // Calculate and write the second buffer address in the buffer only if needed
     if (hasStringArgs == TRUE)
     {
-        secondBufferAddress = firstBufferAddress + moduleNameSize;
+        uint64_t secondBufferAddress = firstBufferAddress + moduleNameSize;
         WriteUInt64(&pBuffer, secondBufferAddress);
     }
 
     // Append the integer arguments to the buffer
-    for (i = 0; i < numberOfArgs; i++)
+    for (size_t i = 0; i < numberOfArgs; i++)
         if (args[i].Type == XdrpcArgType_Integer)
             WriteUInt64(&pBuffer, *(uint64_t *)(args[i].pData));
 
@@ -178,7 +169,7 @@ HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, 
     pBuffer += moduleNameSize;
 
     // Append the string arguments to the buffer
-    for (i = 0; i < numberOfArgs; i++)
+    for (size_t i = 0; i < numberOfArgs; i++)
         if (args[i].Type == XdrpcArgType_String)
             WriteString(&pBuffer, args[i].pData);
 

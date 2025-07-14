@@ -7,13 +7,11 @@
 
 int main(int argc, char **argv)
 {
-    HRESULT hr = S_OK;
-
     // The first char * of argv is the name of the program so the number of arguments is argc - 1
     size_t numberOfArguments = argc - 1;
 
     // Add the XDK bin directory to the path to successfully delay load xbdm.dll
-    hr = AddXdkBinDirToPath();
+    HRESULT hr = AddXdkBinDirToPath();
     if (FAILED(hr))
         return EXIT_FAILURE;
 
