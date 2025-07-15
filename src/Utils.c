@@ -58,7 +58,7 @@ HRESULT AddXdkBinDirToPath(void)
     }
 
     // Calculate the size of the new value of %PATH%
-    char newPathFormat[] = "%s\\bin\\win32;%s";
+    char newPathFormat[] = "%s\\bin\\x64;%s";
     size_t newPathSize = originalPathSize + xdkDirSize + sizeof(newPathFormat);
     char *newPath = malloc(newPathSize);
     if (newPath == NULL)

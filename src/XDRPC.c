@@ -174,7 +174,7 @@ HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, 
             WriteString(&pBuffer, args[i].pData);
 
     // Send the buffer
-    hr = DmSendBinary(connection, buffer, bufferSize);
+    hr = DmSendBinary(connection, buffer, (uint32_t)bufferSize);
     if (FAILED(hr))
     {
         LogXbdmError(hr);
@@ -222,7 +222,7 @@ HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, 
         }
 
         // Receive the actual response buffer (which is the buffer that was sent but with the return value in the second uint64_t)
-        hr = DmReceiveBinary(connection, buffer, bufferSize, NULL);
+        hr = DmReceiveBinary(connection, buffer, (uint32_t)bufferSize, NULL);
         if (FAILED(hr))
         {
             LogXbdmError(hr);

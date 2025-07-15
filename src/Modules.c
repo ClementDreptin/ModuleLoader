@@ -252,7 +252,7 @@ HRESULT Unload(const char *modulePath)
         return E_FAIL;
     }
 
-    void *moduleHandlePatchAddress = (void *)((uint32_t)moduleHandle + 0x40);
+    void *moduleHandlePatchAddress = (void *)((uintptr_t)moduleHandle + 0x40);
 
     // The Xbox 360 is in big-endian so we need to swap the bytes of the patch value before sending it
     uint16_t moduleHandlePatchValue = _byteswap_ushort(1);
