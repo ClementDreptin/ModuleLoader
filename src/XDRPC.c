@@ -83,7 +83,7 @@ HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, 
 
     // Create the command from the format and the buffer size
     char command[60] = { 0 };
-    const char commandFormat[] = "rpc system version=4 buf_size=%d processor=5 thread=\r\n";
+    const char commandFormat[] = "rpc system version=4 buf_size=%d processor=5 thread=";
     _snprintf_s(command, sizeof(command), _TRUNCATE, commandFormat, bufferSize);
 
     // Open the XBDM connection
@@ -210,9 +210,27 @@ HRESULT XdrpcCall(const char *moduleName, uint32_t ordinal, XdrpcArgInfo *args, 
 
         ZeroMemory(buffer, bufferSize);
 
-        // 2 8-byte packets are sent before the actual response buffer, I don't know what information they
-        // are supposed to hold...
-        hr = DmReceiveBinary(connection, buffer, sizeof(uint64_t) * 2, NULL);
+        // Get the console type
+        uint32_t consoleType = 0;
+        hr = DmGetConsoleType((DWORD *)&consoleType);
+        if (FAILED(hr))
+        {
+            LogXbdmError(hr);
+            free(buffer);
+
+            return E_FAIL;
+        }
+
+        // It looks like reviewer kits (which is what an RGH is seen as) send 16 bytes of
+        // unknown data instead of 8
+        size_t unknownPacketSize =
+            consoleType == DMCT_REVIEWER_KIT
+                ? sizeof(uint64_t) * 2
+                : sizeof(uint64_t);
+
+        // An unknown packet is sent before the actual response buffer, I don't know what information
+        // it's supposed to hold...
+        hr = DmReceiveBinary(connection, buffer, (uint32_t)unknownPacketSize, NULL);
         if (FAILED(hr))
         {
             LogXbdmError(hr);

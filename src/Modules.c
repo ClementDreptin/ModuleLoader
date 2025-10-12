@@ -175,7 +175,7 @@ static HRESULT XexUnloadImage(uint64_t moduleHandle)
     args[0].pData = &moduleHandle;
     args[0].Type = XdrpcArgType_Integer;
 
-    HRESULT hr = XdrpcCall("xboxkrnl.exe", 417, args, 1, NULL);
+    HRESULT hr = XdrpcCall("xboxkrnl.exe", 417, args, 1, &status);
     if (FAILED(hr))
         return hr;
 
@@ -252,23 +252,23 @@ HRESULT Unload(const char *modulePath)
         return E_FAIL;
     }
 
-    void *moduleHandlePatchAddress = (void *)((uintptr_t)moduleHandle + 0x40);
+    void *moduleLoadCountAddress = (void *)((uintptr_t)moduleHandle + 0x40);
 
-    // The Xbox 360 is in big-endian so we need to swap the bytes of the patch value before sending it
-    uint16_t moduleHandlePatchValue = _byteswap_ushort(1);
+    // The Xbox 360 is in big-endian so we need to swap the bytes of the load count before sending it
+    uint16_t moduleLoadCountValue = _byteswap_ushort(1);
 
-    // Before unloading a module, the short 0x0001 needs to be written at moduleHandle + 0x40, the console crashes otherwise
+    // Before unloading a module, the load count needs to be set to 1, otherwise the module isn't unmapped from memory
     size_t bytesWritten = 0;
-    hr = DmSetMemory(moduleHandlePatchAddress, sizeof(moduleHandlePatchValue), &moduleHandlePatchValue, (DWORD *)&bytesWritten);
+    hr = DmSetMemory(moduleLoadCountAddress, sizeof(moduleLoadCountValue), &moduleLoadCountValue, (DWORD *)&bytesWritten);
     if (FAILED(hr))
     {
         LogXbdmError(hr);
         return E_FAIL;
     }
 
-    if (bytesWritten != sizeof(moduleHandlePatchValue))
+    if (bytesWritten != sizeof(moduleLoadCountValue))
     {
-        LogError("Expected to write %d bytes at %p but only wrote %d.", sizeof(moduleHandlePatchValue), moduleHandlePatchAddress, bytesWritten);
+        LogError("Expected to write %d bytes at %p but only wrote %d.", sizeof(moduleLoadCountValue), moduleLoadCountAddress, bytesWritten);
         return E_FAIL;
     }
 
