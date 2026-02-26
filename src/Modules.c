@@ -179,7 +179,7 @@ static HRESULT XexUnloadImage(uint64_t moduleHandle)
     if (FAILED(hr))
         return hr;
 
-    if (FAILED(status))
+    if (status != 0)
     {
         LogError("Unloading failed with error %X.", status);
         return E_FAIL;
