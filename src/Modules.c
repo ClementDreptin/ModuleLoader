@@ -130,9 +130,15 @@ HRESULT ShowLoadedModules(BOOL verbose)
 
 static HRESULT XGetModuleHandleA(const char *modulePath, uint64_t *pHandle)
 {
+    char fileName[MAX_PATH] = { 0 };
+    HRESULT hr = GetFileNameFromPath(modulePath, fileName, sizeof(fileName));
+    if (FAILED(hr))
+        return hr;
+
     XdrpcArgInfo args[1] = { { 0 } };
 
-    args[0].pData = modulePath;
+    // The module lookup uses the name, even when unloading by an absolute path.
+    args[0].pData = fileName;
     args[0].Type = XdrpcArgType_String;
 
     return XdrpcCall("xam.xex", 1102, args, 1, pHandle);
@@ -192,18 +198,23 @@ HRESULT Load(const char *modulePath)
 {
     HRESULT hr = S_OK;
 
-    BOOL moduleExists = FALSE;
-    hr = FileExists(modulePath, &moduleExists);
-    if (FAILED(hr))
+    // XBDM drive aliases and kernel device paths use different namespaces.
+    // Let XexLoadImage validate native paths instead of rejecting them through XBDM.
+    if (_strnicmp(modulePath, "\\Device\\", 8) != 0)
     {
-        LogXbdmError(hr);
-        return E_FAIL;
-    }
+        BOOL moduleExists = FALSE;
+        hr = FileExists(modulePath, &moduleExists);
+        if (FAILED(hr))
+        {
+            LogXbdmError(hr);
+            return E_FAIL;
+        }
 
-    if (moduleExists == FALSE)
-    {
-        LogError("%s does not exist.", modulePath);
-        return XBDM_NOSUCHFILE;
+        if (moduleExists == FALSE)
+        {
+            LogError("%s does not exist.", modulePath);
+            return XBDM_NOSUCHFILE;
+        }
     }
 
     BOOL isModuleLoaded = FALSE;

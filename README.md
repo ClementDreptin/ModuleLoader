@@ -18,5 +18,16 @@ You can download the latest binary from the [releases](https://github.com/Clemen
 -   `-s`: Show loaded modules.
 -   `-S`: Show loaded modules and their metadata (verbose).
 -   `<module_path>`: If `<module_path>` is already loaded, it will be unloaded then loaded back, otherwise it will just be loaded.
--   `-l <module_path>`: Load the module located at `<module_path>` (absolute path).
--   `-u <module_name>`: Unload the module named `<module_name>`. `<module_name>` can also be an absolute path.
+-   `-l <module_path>`: Load the module at an absolute drive path or native `\Device\` path.
+-   `-u <module_name>`: Unload the module named `<module_name>`. An absolute path is also accepted; its file name is used for lookup.
+
+## Native device paths
+
+Use a native path if a drive alias such as `USB0:` does not resolve when loading:
+
+```powershell
+.\ModuleLoader.exe -l '\Device\Mass0\Plugins\Example.xex'
+```
+
+`Mass0` is the first USB storage device. Native paths are validated by the console
+kernel instead of XBDM's drive-alias file check.
