@@ -18,8 +18,8 @@
 
 static size_t SizeOfString(const char *string)
 {
-    // Get the amount of characters in the string
-    size_t size = strnlen_s(string, MAX_PATH);
+    // Get the amount of characters in the string, including the null terminator
+    size_t size = strnlen_s(string, MAX_PATH) + 1;
 
     // Round up the size to the closest multiple of 8
     while (size % sizeof(uint64_t) != 0)
